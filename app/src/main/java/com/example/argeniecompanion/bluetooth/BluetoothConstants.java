@@ -42,4 +42,6 @@ public class BluetoothConstants {
     public static final String CMD_PING = "PING";
     public static final String CMD_GET_STATUS = "GET_STATUS";
     public static final String CMD_DISCONNECT = "DISCONNECT";
+    public static final String CMD_JOIN = "JOIN";
+    public static final String CMD_LEAVE = "LEAVE";
 }

@@ -1,3 +1,18 @@
 <resources>
     <string name="app_name">ArGenie Companion</string>
+    <string name="user_data_file_key">com.argeniecompanion.userdata</string>
+
+    <string name="link_code_label">Link Code</string>
+    <string name="link_code_display">Link Code: %1$s</string>
+    <string name="leave_call">Leave Call</string>
+    <string name="status_initializing">Initializing…</string>
+    <string name="status_validating">Validating link code…</string>
+    <string name="status_generating_user">Generating user…</string>
+    <string name="status_connecting_mqtt">Connecting to MQTT…</string>
+    <string name="status_joining_room">Joining room…</string>
+    <string name="status_connecting_livekit">Connecting to LiveKit…</string>
+    <string name="status_in_call">In Call</string>
+    <string name="status_leaving">Leaving…</string>
+    <string name="status_error">Error: %1$s</string>
+
 </resources>

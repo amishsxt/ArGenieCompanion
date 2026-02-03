@@ -14,14 +14,20 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.example.argeniecompanion.R;
+import com.example.argeniecompanion.bluetooth.BluetoothConstants;
 import com.example.argeniecompanion.bluetooth.BluetoothHelper;
 import com.example.argeniecompanion.bluetooth.BluetoothServerService;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = MainActivity.class.getSimpleName();
     private static final int REQUEST_PERMISSIONS = 101;
+    public static final String ACTION_LEAVE = "com.example.argeniecompanion.ACTION_LEAVE";
+    public static final String EXTRA_LINK_CODE = "linkCode";
+
     private Button startServerBtn;
     private Button stopServerBtn;
     private TextView statusTv;
@@ -44,11 +50,12 @@ public class MainActivity extends AppCompatActivity {
         stopServerBtn.setEnabled(false);
 
         startServerBtn.setOnClickListener(v -> {
-            if (checkBluetoothPermissions()) {
-                startBluetoothService();
-            } else {
-                requestBluetoothPermissions();
-            }
+            handleMessage("COMMAND:JOIN:352-669-991");
+//            if (checkBluetoothPermissions()) {
+//                startBluetoothService();
+//            } else {
+//                requestBluetoothPermissions();
+//            }
         });
 
         stopServerBtn.setOnClickListener(v -> stopBluetoothService());
@@ -60,26 +67,49 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     if (connected) {
                         statusTv.setText("Status: Connected to " + deviceName);
-                        addLog("✅ Connected to: " + deviceName);
+                        addLog("Connected to: " + deviceName);
                     } else {
                         statusTv.setText("Status: Disconnected - Waiting for connection...");
-                        addLog("❌ Disconnected");
+                        addLog("Disconnected");
                     }
                 });
             }
 
             @Override
             public void onMessageReceived(String message) {
-                runOnUiThread(() -> {
-                    addLog("📩 Received: " + message);
-                });
+                runOnUiThread(() -> handleMessage(message));
             }
         });
     }
 
-    /**
-     * Triggers the Foreground Service to start the Bluetooth Server
-     */
+    private void handleMessage(String message) {
+        if (message != null && message.startsWith(BluetoothConstants.MESSAGE_TYPE_COMMAND + ":")) {
+            String[] parts = message.split(":", 3);
+            if (parts.length >= 2) {
+                String action = parts[1];
+                String linkCode = parts.length == 3 ? parts[2] : null;
+
+                if (BluetoothConstants.CMD_JOIN.equals(action) && linkCode != null) {
+                    addLog("Command: JOIN with code " + linkCode);
+                    Intent intent = new Intent(this, LiveKitCallActivity.class);
+                    intent.putExtra(EXTRA_LINK_CODE, linkCode);
+                    startActivity(intent);
+                } else if (BluetoothConstants.CMD_LEAVE.equals(action)) {
+                    addLog("Command: LEAVE");
+                    Intent leaveIntent = new Intent(ACTION_LEAVE);
+                    if (linkCode != null) {
+                        leaveIntent.putExtra(EXTRA_LINK_CODE, linkCode);
+                    }
+                    LocalBroadcastManager.getInstance(this).sendBroadcast(leaveIntent);
+                } else {
+                    addLog("Unknown command: " + message);
+                }
+            }
+        } else {
+            addLog("Received: " + message);
+        }
+    }
+
     private void startBluetoothService() {
         Intent serviceIntent = new Intent(this, BluetoothServerService.class);
 
@@ -93,16 +123,13 @@ public class MainActivity extends AppCompatActivity {
         startServerBtn.setEnabled(false);
         stopServerBtn.setEnabled(true);
 
-        addLog("🚀 BLE GATT Server started");
-        addLog("📡 Advertising...");
+        addLog("BLE GATT Server started");
+        addLog("Advertising...");
         addLog("Waiting for Device A to connect...");
 
         Toast.makeText(this, "Bluetooth Server Started", Toast.LENGTH_SHORT).show();
     }
 
-    /**
-     * Stop the Bluetooth service
-     */
     private void stopBluetoothService() {
         Intent serviceIntent = new Intent(this, BluetoothServerService.class);
         stopService(serviceIntent);
@@ -111,19 +138,14 @@ public class MainActivity extends AppCompatActivity {
         startServerBtn.setEnabled(true);
         stopServerBtn.setEnabled(false);
 
-        addLog("🛑 Server stopped");
+        addLog("Server stopped");
 
         Toast.makeText(this, "Bluetooth Server Stopped", Toast.LENGTH_SHORT).show();
     }
 
-    /**
-     * Add message to log display
-     */
     private void addLog(String message) {
         messageLog.append(message).append("\n");
         messageLogTv.setText(messageLog.toString());
-
-        // Auto-scroll to bottom
         messageScrollView.post(() -> messageScrollView.fullScroll(ScrollView.FOCUS_DOWN));
     }
 
@@ -169,7 +191,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Clean up listener
         BluetoothHelper.setMessageListener(null);
     }
 }
