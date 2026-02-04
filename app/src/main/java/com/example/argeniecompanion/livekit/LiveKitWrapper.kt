@@ -156,6 +156,23 @@ class LiveKitWrapper(private val context: Context) {
         }
     }
 
+    fun enableMicrophone(enable: Boolean) {
+        scope.launch {
+            try {
+                room?.localParticipant?.setMicrophoneEnabled(enable)
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    fun isCameraEnabled(): Boolean {
+        return room?.localParticipant?.isCameraEnabled() ?: false
+    }
+
+    fun isMicrophoneEnabled(): Boolean {
+        return room?.localParticipant?.isMicrophoneEnabled() ?: false
+    }
+
     fun stop() {
         scope.launch {
             try {

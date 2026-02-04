@@ -1,10 +1,14 @@
 package com.example.argeniecompanion.ui;
 
 import android.Manifest;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -17,9 +21,9 @@ import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.example.argeniecompanion.R;
-import com.example.argeniecompanion.bluetooth.BluetoothConstants;
-import com.example.argeniecompanion.bluetooth.BluetoothHelper;
-import com.example.argeniecompanion.bluetooth.BluetoothServerService;
+import com.example.argeniecompanion.bluetooth.protocol.BleCommandListener;
+import com.example.argeniecompanion.bluetooth.protocol.BleGattServer;
+import com.example.argeniecompanion.bluetooth.protocol.BleGattServerService;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -36,6 +40,94 @@ public class MainActivity extends AppCompatActivity {
 
     private StringBuilder messageLog = new StringBuilder();
 
+    // BLE Service binding
+    private BleGattServerService bleService;
+    private boolean bleServiceBound = false;
+
+    private final ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            BleGattServerService.LocalBinder binder = (BleGattServerService.LocalBinder) service;
+            bleService = binder.getService();
+            bleServiceBound = true;
+
+            // Set command listener for JOIN/LEAVE when not in a call
+            bleService.setCommandListener(commandListener);
+
+            // Set connection listener
+            bleService.setConnectionListener(connectionListener);
+
+            addLog("BLE service bound");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            bleServiceBound = false;
+            bleService = null;
+            addLog("BLE service unbound");
+        }
+    };
+
+    private final BleGattServer.ConnectionListener connectionListener = new BleGattServer.ConnectionListener() {
+        @Override
+        public void onDeviceConnected(String deviceName, String deviceAddress) {
+            runOnUiThread(() -> {
+                statusTv.setText("Status: Connected to " + (deviceName != null ? deviceName : "device"));
+                addLog("Connected to: " + deviceName + " [" + deviceAddress + "]");
+            });
+        }
+
+        @Override
+        public void onDeviceDisconnected() {
+            runOnUiThread(() -> {
+                statusTv.setText("Status: Disconnected - Waiting for connection...");
+                addLog("Disconnected");
+            });
+        }
+    };
+
+    private final BleCommandListener commandListener = new BleCommandListener() {
+        @Override
+        public boolean onJoinRoom(String linkCode, String userName) {
+            runOnUiThread(() -> {
+                addLog("JOIN_ROOM: linkCode=" + linkCode + ", userName=" + userName);
+                Intent intent = new Intent(MainActivity.this, LiveKitCallActivity.class);
+                intent.putExtra(EXTRA_LINK_CODE, linkCode);
+                startActivity(intent);
+            });
+            return true;
+        }
+
+        @Override
+        public void onLeaveRoom() {
+            runOnUiThread(() -> {
+                addLog("LEAVE_ROOM received");
+                Intent leaveIntent = new Intent(ACTION_LEAVE);
+                LocalBroadcastManager.getInstance(MainActivity.this).sendBroadcast(leaveIntent);
+            });
+        }
+
+        @Override
+        public void onMicMute() {
+            runOnUiThread(() -> addLog("MIC_MUTE (not in call, ignored)"));
+        }
+
+        @Override
+        public void onMicUnmute() {
+            runOnUiThread(() -> addLog("MIC_UNMUTE (not in call, ignored)"));
+        }
+
+        @Override
+        public void onVideoMute() {
+            runOnUiThread(() -> addLog("VIDEO_MUTE (not in call, ignored)"));
+        }
+
+        @Override
+        public void onVideoUnmute() {
+            runOnUiThread(() -> addLog("VIDEO_UNMUTE (not in call, ignored)"));
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,68 +142,30 @@ public class MainActivity extends AppCompatActivity {
         stopServerBtn.setEnabled(false);
 
         startServerBtn.setOnClickListener(v -> {
-            handleMessage("COMMAND:JOIN:352-669-991");
-//            if (checkBluetoothPermissions()) {
-//                startBluetoothService();
-//            } else {
-//                requestBluetoothPermissions();
-//            }
+            if (checkBluetoothPermissions()) {
+                startBluetoothService();
+            } else {
+                requestBluetoothPermissions();
+            }
         });
 
         stopServerBtn.setOnClickListener(v -> stopBluetoothService());
-
-        // Set message listener
-        BluetoothHelper.setMessageListener(new BluetoothHelper.MessageListener() {
-            @Override
-            public void onConnectionStateChanged(boolean connected, String deviceName) {
-                runOnUiThread(() -> {
-                    if (connected) {
-                        statusTv.setText("Status: Connected to " + deviceName);
-                        addLog("Connected to: " + deviceName);
-                    } else {
-                        statusTv.setText("Status: Disconnected - Waiting for connection...");
-                        addLog("Disconnected");
-                    }
-                });
-            }
-
-            @Override
-            public void onMessageReceived(String message) {
-                runOnUiThread(() -> handleMessage(message));
-            }
-        });
     }
 
-    private void handleMessage(String message) {
-        if (message != null && message.startsWith(BluetoothConstants.MESSAGE_TYPE_COMMAND + ":")) {
-            String[] parts = message.split(":", 3);
-            if (parts.length >= 2) {
-                String action = parts[1];
-                String linkCode = parts.length == 3 ? parts[2] : null;
-
-                if (BluetoothConstants.CMD_JOIN.equals(action) && linkCode != null) {
-                    addLog("Command: JOIN with code " + linkCode);
-                    Intent intent = new Intent(this, LiveKitCallActivity.class);
-                    intent.putExtra(EXTRA_LINK_CODE, linkCode);
-                    startActivity(intent);
-                } else if (BluetoothConstants.CMD_LEAVE.equals(action)) {
-                    addLog("Command: LEAVE");
-                    Intent leaveIntent = new Intent(ACTION_LEAVE);
-                    if (linkCode != null) {
-                        leaveIntent.putExtra(EXTRA_LINK_CODE, linkCode);
-                    }
-                    LocalBroadcastManager.getInstance(this).sendBroadcast(leaveIntent);
-                } else {
-                    addLog("Unknown command: " + message);
-                }
-            }
-        } else {
-            addLog("Received: " + message);
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Re-register listener when returning from LiveKitCallActivity
+        // (LiveKitCallActivity clears the listener when it's destroyed)
+        if (bleServiceBound && bleService != null) {
+            bleService.setCommandListener(commandListener);
+            bleService.setConnectionListener(connectionListener);
+            addLog("Listener re-registered");
         }
     }
 
     private void startBluetoothService() {
-        Intent serviceIntent = new Intent(this, BluetoothServerService.class);
+        Intent serviceIntent = new Intent(this, BleGattServerService.class);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             ContextCompat.startForegroundService(this, serviceIntent);
@@ -119,19 +173,34 @@ public class MainActivity extends AppCompatActivity {
             startService(serviceIntent);
         }
 
+        // Bind to service to get callbacks
+        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+
         statusTv.setText("Status: Server Running (Listening...)");
         startServerBtn.setEnabled(false);
         stopServerBtn.setEnabled(true);
 
-        addLog("BLE GATT Server started");
+        addLog("BLE GATT Server started (binary protocol)");
         addLog("Advertising...");
-        addLog("Waiting for Device A to connect...");
+        addLog("Waiting for Controller to connect...");
 
         Toast.makeText(this, "Bluetooth Server Started", Toast.LENGTH_SHORT).show();
     }
 
     private void stopBluetoothService() {
-        Intent serviceIntent = new Intent(this, BluetoothServerService.class);
+        // Unbind first
+        if (bleServiceBound) {
+            if (bleService != null) {
+                bleService.setCommandListener(null);
+                bleService.setConnectionListener(null);
+            }
+            unbindService(serviceConnection);
+            bleServiceBound = false;
+            bleService = null;
+        }
+
+        // Stop service
+        Intent serviceIntent = new Intent(this, BleGattServerService.class);
         stopService(serviceIntent);
 
         statusTv.setText("Status: Server Stopped");
@@ -191,6 +260,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        BluetoothHelper.setMessageListener(null);
+        if (bleServiceBound) {
+            if (bleService != null) {
+                bleService.setCommandListener(null);
+                bleService.setConnectionListener(null);
+            }
+            unbindService(serviceConnection);
+            bleServiceBound = false;
+        }
     }
 }
