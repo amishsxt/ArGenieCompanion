@@ -131,12 +131,11 @@ public class ArGenieApp extends Application implements MqttWebRTC.OnWebRTCEvent 
      */
     public static void clearSession() {
         AppLogger.d(TAG, "Clearing session data");
-        userId = null;
         currentMeetingId = null;
         videoSessionId = null;
         chatSessionId = null;
         clearAuthTokens();
-        // Keep deviceId, companyId, and user name for potential re-login
+        // Keep userId, deviceId, companyId, and user name — they persist for the app lifetime
     }
 
     /**
@@ -190,6 +189,13 @@ public class ArGenieApp extends Application implements MqttWebRTC.OnWebRTCEvent 
 
         if (hostCompanyId != null) {
             companyId = hostCompanyId;
+        }
+
+        // Reuse existing userId if already generated
+        if (userId != null) {
+            AppLogger.d(TAG, "generateUserId: reusing existing userId: " + userId);
+            callback.onSuccess();
+            return;
         }
 
         createAnonymousUser(companyId, new CreateP2PSessionCallbacks() {

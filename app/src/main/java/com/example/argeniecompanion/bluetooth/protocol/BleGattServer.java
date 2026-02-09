@@ -23,6 +23,8 @@ import android.os.Looper;
 import android.os.ParcelUuid;
 import android.util.Log;
 
+import java.io.ByteArrayOutputStream;
+
 /**
  * BLE GATT Server implementation for receiving binary commands from a Controller app.
  *
@@ -65,6 +67,9 @@ public class BleGattServer {
     private boolean videoMuted = false;
     private boolean inRoom = false;
     private boolean isRunning = false;
+
+    // Buffer for prepared (long) writes
+    private final ByteArrayOutputStream preparedWriteBuffer = new ByteArrayOutputStream();
 
     /**
      * Listener for connection state changes.
@@ -533,6 +538,9 @@ public class BleGattServer {
             } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
                 Log.i(TAG, "Device disconnected");
                 connectedDevice = null;
+                synchronized (preparedWriteBuffer) {
+                    preparedWriteBuffer.reset();
+                }
 
                 if (connectionListener != null) {
                     mainHandler.post(() -> connectionListener.onDeviceDisconnected());
@@ -550,8 +558,16 @@ public class BleGattServer {
                                                  byte[] value) {
 
             if (BleProtocol.WRITE_CHARACTERISTIC_UUID.equals(characteristic.getUuid())) {
-                // Process the command on the main thread
-                mainHandler.post(() -> processCommand(value));
+                if (preparedWrite) {
+                    // Buffer the chunk — will be assembled in onExecuteWrite()
+                    synchronized (preparedWriteBuffer) {
+                        preparedWriteBuffer.write(value, 0, value.length);
+                    }
+                    Log.d(TAG, "Buffered prepared write chunk: " + BleCommandParser.toHexString(value));
+                } else {
+                    // Single (non-prepared) write — process immediately
+                    mainHandler.post(() -> processCommand(value));
+                }
 
                 // Send GATT response if needed
                 if (responseNeeded) {
@@ -562,6 +578,24 @@ public class BleGattServer {
                     gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED, offset, null);
                 }
             }
+        }
+
+        @Override
+        public void onExecuteWrite(BluetoothDevice device, int requestId, boolean execute) {
+            byte[] assembled;
+            synchronized (preparedWriteBuffer) {
+                assembled = preparedWriteBuffer.toByteArray();
+                preparedWriteBuffer.reset();
+            }
+
+            if (execute && assembled.length > 0) {
+                Log.d(TAG, "Execute write — assembled " + assembled.length + " bytes");
+                mainHandler.post(() -> processCommand(assembled));
+            } else {
+                Log.d(TAG, "Execute write cancelled or empty buffer");
+            }
+
+            gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null);
         }
 
         @Override
