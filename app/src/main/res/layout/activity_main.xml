@@ -4,15 +4,15 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="@android:color/white">
+    android:background="?colorSurface">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="ArGenie Companion (Device B)"
-        android:textSize="24sp"
+        android:textSize="20sp"
         android:textStyle="bold"
-        android:textColor="@android:color/black"
+        android:textColor="?colorOnSurface"
         android:gravity="center"
         android:paddingBottom="16dp" />
 
@@ -23,34 +23,80 @@
         android:text="Status: Not Running"
         android:textSize="16sp"
         android:textColor="@android:color/holo_orange_dark"
-        android:paddingBottom="16dp"
+        android:paddingBottom="8dp"
         android:gravity="center" />
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/link_code_tv"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/holo_blue_dark"
+        android:paddingBottom="16dp"
         android:gravity="center"
-        android:paddingBottom="16dp">
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/start_server_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Start Server"
+        android:textColor="@android:color/white"
+        android:backgroundTint="@android:color/holo_green_dark"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/stop_server_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Stop Server"
+        android:textColor="@android:color/white"
+        android:backgroundTint="@android:color/holo_red_dark"
+        android:layout_marginBottom="16dp"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/call_controls_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone"
+        android:layout_marginBottom="15dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/mic_btn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/mic_on" />
+
+            <View
+                android:layout_width="10dp"
+                android:layout_height="1dp"/>
+
+            <Button
+                android:id="@+id/camera_btn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/camera_on" />
+        </LinearLayout>
 
         <Button
-            android:id="@+id/start_server_btn"
-            android:layout_width="0dp"
+            android:id="@+id/leave_btn"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Start Server"
-            android:textColor="@android:color/white"
-            android:backgroundTint="@android:color/holo_green_dark"
-            android:layout_marginEnd="8dp" />
-
-        <Button
-            android:id="@+id/stop_server_btn"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Stop Server"
+            android:text="@string/leave_call"
             android:textColor="@android:color/white"
             android:backgroundTint="@android:color/holo_red_dark" />
+
     </LinearLayout>
 
     <View
@@ -63,9 +109,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Message Log:"
-        android:textSize="18sp"
+        android:textSize="16sp"
         android:textStyle="bold"
-        android:textColor="@android:color/black"
+        android:textColor="?colorOnSurface"
         android:paddingBottom="8dp" />
 
     <ScrollView
@@ -73,7 +119,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="#F5F5F5"
+        android:background="?colorSurfaceVariant"
         android:padding="12dp">
 
         <TextView
@@ -81,17 +127,17 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Waiting for server to start...\n"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
+            android:textSize="13sp"
+            android:textColor="?colorOnSurface"
             android:fontFamily="monospace" />
     </ScrollView>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="ℹ️ Make sure Device A is scanning for devices"
+        android:text="Make sure Device A is scanning for devices"
         android:textSize="12sp"
-        android:textColor="@android:color/darker_gray"
+        android:textColor="?colorOnSurfaceVariant"
         android:gravity="center"
         android:paddingTop="8dp" />
 

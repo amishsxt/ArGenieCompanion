@@ -44,6 +44,7 @@ public class BleGattServerService extends Service {
     private static final String TAG = "BleGattServerService";
     private static final String CHANNEL_ID = "BleGattServer_Channel";
     private static final int NOTIFICATION_ID = 2;
+    public static final String ACTION_STOP_SERVER = "com.example.argeniecompanion.STOP_SERVER";
 
     private BleGattServer gattServer;
     private final LocalBinder binder = new LocalBinder();
@@ -144,6 +145,12 @@ public class BleGattServerService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && ACTION_STOP_SERVER.equals(intent.getAction())) {
+            Log.d(TAG, "Stop action received");
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+
         Log.d(TAG, "Service started");
 
         createNotificationChannel();
@@ -257,7 +264,7 @@ public class BleGattServerService extends Service {
         startForeground(NOTIFICATION_ID, notification);
     }
 
-    private void updateNotification(String text) {
+    public void updateNotification(String text) {
         Notification notification = buildNotification(text);
         NotificationManager manager = getSystemService(NotificationManager.class);
         if (manager != null) {
@@ -274,11 +281,21 @@ public class BleGattServerService extends Service {
                 PendingIntent.FLAG_IMMUTABLE
         );
 
+        Intent stopIntent = new Intent(this, BleGattServerService.class);
+        stopIntent.setAction(ACTION_STOP_SERVER);
+        PendingIntent stopPendingIntent = PendingIntent.getService(
+                this,
+                1,
+                stopIntent,
+                PendingIntent.FLAG_IMMUTABLE
+        );
+
         return new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("ArGenie BLE Server")
                 .setContentText(contentText)
                 .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
                 .setContentIntent(pendingIntent)
+                .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop Server", stopPendingIntent)
                 .setOngoing(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .build();

@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.ConcurrentModificationException;
 import java.util.ListIterator;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import io.reactivex.exceptions.UndeliverableException;
 
@@ -34,6 +36,7 @@ public class MqttWebRTC {
     private static final String TAG = MqttWebRTC.class.getSimpleName();
     public Mqtt5BlockingClient client = null;
     private static MqttWebRTC instance;
+    private final ExecutorService connectExecutor = Executors.newSingleThreadExecutor();
     public static OnWebRTCEvent onWebRTCEvent;
     public static RemoteFunctionsCallback remoteFunctionsCallback = null;
     public static MessageCallbacks messageCallbacks = null;
@@ -120,8 +123,18 @@ public class MqttWebRTC {
                 .willPublish(willPublishMessage)
                 .buildBlocking();
         AppLogger.d(TAG, "initMqtt(): Mqtt Built");
-        client.connectWith().send();
         MqttWebRTC.onWebRTCEvent = onWebRTCEvent;
+        // Run the blocking connect on a background thread to avoid ANR
+        connectExecutor.execute(() -> {
+            try {
+                client.connectWith().send();
+            } catch (Exception e) {
+                AppLogger.e(TAG, "initMqtt(): connect failed", e);
+                if (connectionCallback != null) {
+                    connectionCallback.onMqttConnectionFailure(e.getMessage());
+                }
+            }
+        });
     }
 
     public void onClientConnected(){

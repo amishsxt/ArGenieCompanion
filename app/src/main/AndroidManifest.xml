@@ -10,6 +10,12 @@
         android:maxSdkVersion="30" />
     <uses-permission
         android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.ACCESS_COARSE_LOCATION"
         android:maxSdkVersion="30" /> <!-- Required for Android 12 (API 31) and above -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
@@ -28,9 +34,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ArGenieCompanion"
         tools:targetApi="31">
-        <activity
-            android:name=".ui.LiveKitCallActivity"
-            android:exported="false" />
         <activity
             android:name=".ui.SplashActivity"
             android:exported="true">
