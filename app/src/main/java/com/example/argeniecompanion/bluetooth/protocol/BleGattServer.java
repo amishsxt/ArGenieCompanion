@@ -393,18 +393,19 @@ public class BleGattServer {
 
         // Send appropriate response for synchronous commands
         byte[] response;
-        if (cmd == BleProtocol.CMD_GET_STATUS) {
-            response = BleResponseBuilder.buildStatusResponse(
+        if (cmd == BleProtocol.CMD_PING) {
+            response = BleResponseBuilder.buildPongResponse();
+        } else {
+            // All other synchronous commands (GET_STATUS, MIC_MUTE/UNMUTE, VIDEO_MUTE/UNMUTE)
+            // respond with full device state so the controller always knows current state
+            response = BleResponseBuilder.buildCommandStatusResponse(
+                    cmd,
                     responseStatus,
                     getBatteryLevel(),
                     micMuted,
                     videoMuted,
                     inRoom
             );
-        } else if (cmd == BleProtocol.CMD_PING) {
-            response = BleResponseBuilder.buildPongResponse();
-        } else {
-            response = BleResponseBuilder.buildAckResponse(cmd, responseStatus);
         }
 
         sendResponse(response);
