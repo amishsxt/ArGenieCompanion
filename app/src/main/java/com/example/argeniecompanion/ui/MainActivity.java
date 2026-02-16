@@ -312,6 +312,9 @@ public class MainActivity extends AppCompatActivity {
         });
 
         updateUIState(UIState.NOT_RUNNING);
+
+        // Set default focus for Vuzix D-pad navigation
+        backBtn.requestFocus();
     }
 
     // -------------------- UI STATE MANAGEMENT --------------------
@@ -327,6 +330,12 @@ public class MainActivity extends AppCompatActivity {
                 startServerBtn.setVisibility(View.VISIBLE);
                 stopServerBtn.setVisibility(View.GONE);
                 callControlsLayout.setVisibility(View.GONE);
+                // Focus chain: Back <-> Start Server (Stop Server is GONE)
+                backBtn.setNextFocusDownId(R.id.start_server_btn);
+                backBtn.setNextFocusUpId(R.id.start_server_btn);
+                startServerBtn.setNextFocusDownId(R.id.back_btn);
+                startServerBtn.setNextFocusUpId(R.id.back_btn);
+                startServerBtn.requestFocus();
                 break;
 
             case SERVER_RUNNING:
@@ -336,6 +345,12 @@ public class MainActivity extends AppCompatActivity {
                 startServerBtn.setVisibility(View.GONE);
                 stopServerBtn.setVisibility(View.VISIBLE);
                 callControlsLayout.setVisibility(View.GONE);
+                // Focus chain: Back <-> Stop Server (Start Server is GONE)
+                backBtn.setNextFocusDownId(R.id.stop_server_btn);
+                backBtn.setNextFocusUpId(R.id.stop_server_btn);
+                stopServerBtn.setNextFocusDownId(R.id.back_btn);
+                stopServerBtn.setNextFocusUpId(R.id.back_btn);
+                stopServerBtn.requestFocus();
                 if (bleServiceBound && bleService != null) {
                     bleService.updateNotification("Waiting for connection...");
                 }
@@ -349,6 +364,12 @@ public class MainActivity extends AppCompatActivity {
                 startServerBtn.setVisibility(View.GONE);
                 stopServerBtn.setVisibility(View.VISIBLE);
                 callControlsLayout.setVisibility(View.GONE);
+                // Focus chain: Back <-> Stop Server
+                backBtn.setNextFocusDownId(R.id.stop_server_btn);
+                backBtn.setNextFocusUpId(R.id.stop_server_btn);
+                stopServerBtn.setNextFocusDownId(R.id.back_btn);
+                stopServerBtn.setNextFocusUpId(R.id.back_btn);
+                stopServerBtn.requestFocus();
                 if (bleServiceBound && bleService != null) {
                     bleService.updateNotification("Joining call...");
                 }
@@ -361,9 +382,15 @@ public class MainActivity extends AppCompatActivity {
                 linkCodeTv.setText(getString(R.string.link_code_display, linkCode));
                 startServerBtn.setVisibility(View.GONE);
                 stopServerBtn.setVisibility(View.VISIBLE);
-                callControlsLayout.setVisibility(View.VISIBLE);
+//                callControlsLayout.setVisibility(View.VISIBLE);
                 updateMicButton();
                 updateCameraButton();
+                // Focus chain: Back <-> Stop Server
+                backBtn.setNextFocusDownId(R.id.stop_server_btn);
+                backBtn.setNextFocusUpId(R.id.stop_server_btn);
+                stopServerBtn.setNextFocusDownId(R.id.back_btn);
+                stopServerBtn.setNextFocusUpId(R.id.back_btn);
+                stopServerBtn.requestFocus();
                 if (bleServiceBound && bleService != null) {
                     bleService.updateNotification("In Call");
                 }
@@ -671,7 +698,7 @@ public class MainActivity extends AppCompatActivity {
     private void addLog(String message) {
         messageLog.append(message).append("\n");
         messageLogTv.setText(messageLog.toString());
-        messageScrollView.post(() -> messageScrollView.fullScroll(ScrollView.FOCUS_DOWN));
+        messageScrollView.post(() -> messageScrollView.scrollTo(0, messageLogTv.getBottom()));
     }
 
     // -------------------- PERMISSIONS --------------------
