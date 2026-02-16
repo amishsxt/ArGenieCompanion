@@ -228,6 +228,19 @@ public class BleGattServerService extends Service {
     }
 
     /**
+     * Send a deferred command result with full device state.
+     * Call this when an async operation (JOIN_ROOM, LEAVE_ROOM) completes.
+     *
+     * @param command The original command byte (e.g. BleProtocol.CMD_JOIN_ROOM)
+     * @param success true if the operation succeeded
+     */
+    public void sendDeferredCommandResult(byte command, boolean success) {
+        if (gattServer != null) {
+            gattServer.sendDeferredCommandResult(command, success);
+        }
+    }
+
+    /**
      * Check if a device is connected.
      */
     public boolean isConnected() {

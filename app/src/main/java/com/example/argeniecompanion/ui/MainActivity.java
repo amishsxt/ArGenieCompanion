@@ -6,6 +6,8 @@ import static com.example.argeniecompanion.app.ArGenieApp.userId;
 import static com.example.argeniecompanion.app.ArGenieApp.videoSessionId;
 
 import android.Manifest;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -16,6 +18,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -23,6 +26,7 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -33,6 +37,7 @@ import com.example.argeniecompanion.app.ArGenieApp;
 import com.example.argeniecompanion.bluetooth.protocol.BleCommandListener;
 import com.example.argeniecompanion.bluetooth.protocol.BleGattServer;
 import com.example.argeniecompanion.bluetooth.protocol.BleGattServerService;
+import com.example.argeniecompanion.bluetooth.protocol.BleProtocol;
 import com.example.argeniecompanion.livekit.LiveKitWrapper;
 import com.example.argeniecompanion.logger.AppLogger;
 import com.example.argeniecompanion.network.api.RemoteCallApi;
@@ -58,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
     private UIState currentState = UIState.NOT_RUNNING;
 
     // UI Elements
+    private ImageView backBtn;
     private Button startServerBtn;
     private Button stopServerBtn;
     private TextView statusTv;
@@ -80,6 +86,8 @@ public class MainActivity extends AppCompatActivity {
     private String linkCode, userName;
     private boolean micMuted = false;
     private boolean videoMuted = false;
+
+    private static final int REQUEST_CALL_PERMISSIONS = 102;
 
     private final ActivityResultLauncher<String> cameraPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
@@ -156,12 +164,18 @@ public class MainActivity extends AppCompatActivity {
                 MainActivity.this.linkCode = linkCode;
                 MainActivity.this.userName = userName;
 
-                // Request camera permission then start connection flow
-                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA)
-                        == PackageManager.PERMISSION_GRANTED) {
+                // Request camera + audio permissions then start connection flow
+                boolean hasCameraPermission = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA)
+                        == PackageManager.PERMISSION_GRANTED;
+                boolean hasAudioPermission = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO)
+                        == PackageManager.PERMISSION_GRANTED;
+
+                if (hasCameraPermission && hasAudioPermission) {
                     startPhase1();
                 } else {
-                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+                    ActivityCompat.requestPermissions(MainActivity.this,
+                            new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO},
+                            REQUEST_CALL_PERMISSIONS);
                 }
             });
             return true;
@@ -244,6 +258,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         // Initialize UI elements
+        backBtn = findViewById(R.id.back_btn);
         startServerBtn = findViewById(R.id.start_server_btn);
         stopServerBtn = findViewById(R.id.stop_server_btn);
         statusTv = findViewById(R.id.status_tv);
@@ -255,10 +270,18 @@ public class MainActivity extends AppCompatActivity {
         micBtn = findViewById(R.id.mic_btn);
         cameraBtn = findViewById(R.id.camera_btn);
 
+        backBtn.setOnClickListener( view -> {
+            onBackPressed();
+        });
+
         // Set up click listeners
         startServerBtn.setOnClickListener(v -> {
             if (checkBluetoothPermissions()) {
-                startBluetoothService();
+                if (isBluetoothEnabled()) {
+                    startBluetoothService();
+                } else {
+                    promptEnableBluetooth();
+                }
             } else {
                 requestBluetoothPermissions();
             }
@@ -384,6 +407,7 @@ public class MainActivity extends AppCompatActivity {
                             statusTv.setText(getString(R.string.status_error, message));
                             addLog("Error: " + message);
                             updateUIState(UIState.SERVER_RUNNING);
+                            sendBleCommandResult(BleProtocol.CMD_JOIN_ROOM, false);
                         });
                     }
                 });
@@ -412,6 +436,7 @@ public class MainActivity extends AppCompatActivity {
                     statusTv.setText(getString(R.string.status_error, error));
                     addLog("Error: " + error);
                     updateUIState(UIState.SERVER_RUNNING);
+                    sendBleCommandResult(BleProtocol.CMD_JOIN_ROOM, false);
                 });
             }
         });
@@ -435,6 +460,7 @@ public class MainActivity extends AppCompatActivity {
                     statusTv.setText(getString(R.string.status_error, error));
                     addLog("MQTT error: " + error);
                     updateUIState(UIState.SERVER_RUNNING);
+                    sendBleCommandResult(BleProtocol.CMD_JOIN_ROOM, false);
                 });
             }
         });
@@ -454,6 +480,7 @@ public class MainActivity extends AppCompatActivity {
                             String message = responseBody.getString("message");
                             Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
                             addLog("Join failed: " + message);
+                            sendBleCommandResult(BleProtocol.CMD_JOIN_ROOM, false);
                             leaveSession(false);
                             return;
                         }
@@ -492,6 +519,7 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
                     addLog("Error: " + message);
                     updateUIState(UIState.SERVER_RUNNING);
+                    sendBleCommandResult(BleProtocol.CMD_JOIN_ROOM, false);
                 });
             }
         });
@@ -517,6 +545,9 @@ public class MainActivity extends AppCompatActivity {
 
                     updateUIState(UIState.IN_CALL);
                     updateBleServiceState();
+
+                    // Send deferred JOIN_ROOM success response to controller
+                    sendBleCommandResult(BleProtocol.CMD_JOIN_ROOM, true);
                 });
             }
 
@@ -527,6 +558,9 @@ public class MainActivity extends AppCompatActivity {
                     statusTv.setText(getString(R.string.status_error, error));
                     addLog("LiveKit error: " + error);
                     updateUIState(UIState.SERVER_RUNNING);
+
+                    // Send deferred JOIN_ROOM failure response to controller
+                    sendBleCommandResult(BleProtocol.CMD_JOIN_ROOM, false);
                 });
             }
         });
@@ -561,6 +595,10 @@ public class MainActivity extends AppCompatActivity {
 
         addLog("Session ended");
         updateUIState(UIState.SERVER_RUNNING);
+        updateBleServiceState();
+
+        // Send deferred LEAVE_ROOM success response to controller
+        sendBleCommandResult(BleProtocol.CMD_LEAVE_ROOM, true);
     }
 
     // -------------------- BLE SERVICE STATE --------------------
@@ -570,6 +608,12 @@ public class MainActivity extends AppCompatActivity {
             bleService.setMicMuted(micMuted);
             bleService.setVideoMuted(videoMuted);
             bleService.setInRoom(currentState == UIState.IN_CALL);
+        }
+    }
+
+    private void sendBleCommandResult(byte command, boolean success) {
+        if (bleServiceBound && bleService != null) {
+            bleService.sendDeferredCommandResult(command, success);
         }
     }
 
@@ -632,6 +676,26 @@ public class MainActivity extends AppCompatActivity {
 
     // -------------------- PERMISSIONS --------------------
 
+    @android.annotation.SuppressLint("MissingPermission")
+    private boolean isBluetoothEnabled() {
+        BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        if (bluetoothManager == null) return false;
+        BluetoothAdapter adapter = bluetoothManager.getAdapter();
+        return adapter != null && adapter.isEnabled();
+    }
+
+    private void promptEnableBluetooth() {
+        new AlertDialog.Builder(this)
+                .setTitle("Bluetooth Required")
+                .setMessage("Bluetooth is turned off. Please enable Bluetooth to start the server.")
+                .setPositiveButton("Enable", (dialog, which) -> {
+                    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivity(enableBtIntent);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
     private boolean checkBluetoothPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             return ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
@@ -669,9 +733,28 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             if (allGranted) {
-                startBluetoothService();
+                if (isBluetoothEnabled()) {
+                    startBluetoothService();
+                } else {
+                    promptEnableBluetooth();
+                }
             } else {
                 Toast.makeText(this, "Permissions required for Bluetooth functionality", Toast.LENGTH_LONG).show();
+            }
+        } else if (requestCode == REQUEST_CALL_PERMISSIONS) {
+            boolean allGranted = grantResults.length > 0;
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    allGranted = false;
+                    break;
+                }
+            }
+            if (allGranted) {
+                startPhase1();
+            } else {
+                Toast.makeText(this, "Camera and microphone permissions are required for calls", Toast.LENGTH_LONG).show();
+                addLog("Call permissions denied");
+                updateUIState(UIState.SERVER_RUNNING);
             }
         }
     }

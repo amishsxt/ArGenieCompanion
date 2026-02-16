@@ -2,19 +2,35 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:padding="16dp"
     android:background="?colorSurface">
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="ArGenie Companion (Device B)"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:textColor="?colorOnSurface"
-        android:gravity="center"
-        android:paddingBottom="16dp" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="18dp">
+
+        <ImageView
+            android:id="@+id/back_btn"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/arrow_back_ios_24px"
+            app:tint="?colorOnSurface"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="ArGenie Companion (Device B)"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="?colorOnSurface"
+            android:singleLine="true"
+            android:ellipsize="end"/>
+    </LinearLayout>
 
     <TextView
         android:id="@+id/status_tv"
@@ -120,7 +136,9 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:background="?colorSurfaceVariant"
-        android:padding="12dp">
+        android:padding="12dp"
+        android:clickable="false"
+        android:focusable="false">
 
         <TextView
             android:id="@+id/message_log_tv"

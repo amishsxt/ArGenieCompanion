@@ -221,6 +221,27 @@ public class BleGattServer {
     }
 
     /**
+     * Send a deferred command result with full device state (mic, video, inRoom).
+     * Used for async commands like JOIN_ROOM and LEAVE_ROOM whose result is
+     * only known after the operation completes.
+     *
+     * @param command The original command byte (e.g. CMD_JOIN_ROOM)
+     * @param success true if the operation succeeded, false otherwise
+     */
+    public void sendDeferredCommandResult(byte command, boolean success) {
+        byte status = success ? BleProtocol.STATUS_OK : BleProtocol.STATUS_ERROR;
+        byte[] response = BleResponseBuilder.buildCommandStatusResponse(
+                command, status, getBatteryLevel(), micMuted, videoMuted, inRoom
+        );
+        sendResponse(response);
+        Log.i(TAG, "Deferred response sent for " + BleProtocol.getCommandName(command)
+                + ": " + BleProtocol.getStatusName(status)
+                + " [mic=" + (micMuted ? "muted" : "on")
+                + ", video=" + (videoMuted ? "off" : "on")
+                + ", inRoom=" + inRoom + "]");
+    }
+
+    /**
      * Send a binary response to the connected device.
      *
      * @param response The response packet bytes
@@ -358,9 +379,21 @@ public class BleGattServer {
         // Handle the command
         byte responseStatus = executeCommand(parsed);
 
-        // Send appropriate response
+        // JOIN_ROOM and LEAVE_ROOM are async — response will be sent later
+        // via sendDeferredCommandResult() when the operation actually completes.
+        byte cmd = parsed.getCommand();
+        if (cmd == BleProtocol.CMD_JOIN_ROOM || cmd == BleProtocol.CMD_LEAVE_ROOM) {
+            // Only send an immediate error if the command was rejected synchronously
+            // (e.g. already in room, or not in room). STATUS_OK means async processing started.
+            if (responseStatus != BleProtocol.STATUS_OK) {
+                sendResponse(BleResponseBuilder.buildAckResponse(cmd, responseStatus));
+            }
+            return;
+        }
+
+        // Send appropriate response for synchronous commands
         byte[] response;
-        if (parsed.getCommand() == BleProtocol.CMD_GET_STATUS) {
+        if (cmd == BleProtocol.CMD_GET_STATUS) {
             response = BleResponseBuilder.buildStatusResponse(
                     responseStatus,
                     getBatteryLevel(),
@@ -368,13 +401,10 @@ public class BleGattServer {
                     videoMuted,
                     inRoom
             );
-        } else if (parsed.getCommand() == BleProtocol.CMD_PING) {
+        } else if (cmd == BleProtocol.CMD_PING) {
             response = BleResponseBuilder.buildPongResponse();
         } else {
-            response = BleResponseBuilder.buildAckResponse(
-                    parsed.getCommand(),
-                    responseStatus
-            );
+            response = BleResponseBuilder.buildAckResponse(cmd, responseStatus);
         }
 
         sendResponse(response);
@@ -425,19 +455,16 @@ public class BleGattServer {
         }
 
         if (commandListener != null) {
-            boolean success = commandListener.onJoinRoom(
+            // onJoinRoom kicks off the async join flow.
+            // The actual result will be sent later via sendDeferredCommandResult().
+            commandListener.onJoinRoom(
                     parsed.getLinkCode(),
                     parsed.getUserName()
             );
-
-            if (success) {
-                inRoom = true;
-                return BleProtocol.STATUS_OK;
-            } else {
-                return BleProtocol.STATUS_ERROR;
-            }
         }
 
+        // STATUS_OK here means "accepted for processing" — processCommand() will
+        // not send a response for this; the deferred response comes later.
         return BleProtocol.STATUS_OK;
     }
 
