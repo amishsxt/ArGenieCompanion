@@ -4,11 +4,11 @@
     <!-- Focused state -->
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <solid android:color="#44FFFFFF"/>
+            <solid android:color="#44858484"/>
             <corners android:radius="8dp"/>
             <stroke
                 android:width="2dp"
-                android:color="#FFFFFF"/>
+                android:color="@color/colorOnSurface"/>
         </shape>
     </item>
 

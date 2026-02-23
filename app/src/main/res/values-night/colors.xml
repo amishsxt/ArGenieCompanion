@@ -1,0 +1,13 @@
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- SURFACES -->
+    <color name="colorSurface">#121212</color>
+    <color name="colorOnSurface">#FFFFFF</color>
+    <color name="colorSurfaceVariant">#1E1E1E</color>
+    <color name="colorOnSurfaceVariant">#E0E0E0</color>
+
+    <color name="colorError">#BD0101</color>
+    <color name="colorOnError">#FFFFFF</color>
+</resources>

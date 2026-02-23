@@ -3,5 +3,16 @@
     <style name="Base.Theme.ArGenieCompanion" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your dark theme here. -->
         <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">@color/colorSurfaceVariant</item>
+
+        <!-- Status bar icons: dark icons for light background -->
+        <item name="android:windowLightStatusBar">true</item>
+
+        <item name="colorSurface">@color/colorSurface</item>
+        <item name="colorOnSurface">@color/colorOnSurface</item>
+
+        <item name="colorSurfaceVariant">@color/colorSurfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/colorOnSurfaceVariant</item>
     </style>
 </resources>
