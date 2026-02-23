@@ -20,5 +20,24 @@
     <string name="mic_off">Mic Off</string>
     <string name="camera_on">Camera On</string>
     <string name="camera_off">Camera Off</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <string name="guest_user">Guest User</string>
+    <string name="chat">Chat</string>
+    <string name="next">Next</string>
+
+    <string name="no_messages_yet">No Messages Yet</string>
+    <string name="message_long">search engine technology, online advertising, cloud computing, computer software, quantum computing, e-commerce, artificial intelligence,[9] and consumer electronics.</string>
+    <string name="document_warning_text">Do you want to download this document?</string>
+    <string name="warning">Warning</string>
+    <string name="download">Download</string>
+    <string name="cancel">Cancel</string>
+    <string name="view_text">View</string>
+    <string name="close">Close</string>
+
+    <string name="type_here">Write your message</string>
+    <string name="message">Message</string>
+    <string name="todo">TODO</string>
 
 </resources>

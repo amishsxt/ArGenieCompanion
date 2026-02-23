@@ -25,7 +25,9 @@ public class MqttSubscriptions {
                     if (publish.getPayload().isPresent()) {
                         AppLogger.d(TAG, "Mqtt Received message tag: " + publish.getTopic() + " -> " + UTF_8.decode(publish.getPayload().get()));
                         try {
-                            MqttWebRTC.messageCallbacks.addMessageCallback(ArGenieApp.chatSessionId, ArGenieApp.hostCompanyId, publish.getPayload().get());
+                            if (MqttWebRTC.messageCallbacks != null) {
+                                MqttWebRTC.messageCallbacks.addMessageCallback(ArGenieApp.chatSessionId, ArGenieApp.hostCompanyId, publish.getPayload().get());
+                            }
                         } catch (Exception e) {
                             AppLogger.e(TAG, "addMessageListener interface file " + e.getMessage());
                             e.printStackTrace();

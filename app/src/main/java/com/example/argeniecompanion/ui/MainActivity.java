@@ -34,6 +34,7 @@ import androidx.core.content.ContextCompat;
 
 import com.example.argeniecompanion.R;
 import com.example.argeniecompanion.app.ArGenieApp;
+import com.example.argeniecompanion.model.ChatMessage;
 import com.example.argeniecompanion.bluetooth.protocol.BleCommandListener;
 import com.example.argeniecompanion.bluetooth.protocol.BleGattServer;
 import com.example.argeniecompanion.bluetooth.protocol.BleGattServerService;
@@ -41,13 +42,18 @@ import com.example.argeniecompanion.bluetooth.protocol.BleProtocol;
 import com.example.argeniecompanion.livekit.LiveKitWrapper;
 import com.example.argeniecompanion.logger.AppLogger;
 import com.example.argeniecompanion.network.api.RemoteCallApi;
+import com.example.argeniecompanion.network.pubsub.MqttWebRTC;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements MqttWebRTC.MessageCallbacks {
 
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final int REQUEST_PERMISSIONS = 101;
@@ -63,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
     private UIState currentState = UIState.NOT_RUNNING;
 
     // UI Elements
-    private ImageView backBtn;
+    private ImageView backBtn, chatIv;
     private Button startServerBtn;
     private Button stopServerBtn;
     private TextView statusTv;
@@ -76,6 +82,10 @@ public class MainActivity extends AppCompatActivity {
     private Button cameraBtn;
 
     private StringBuilder messageLog = new StringBuilder();
+
+    // Chat
+    private final List<ChatMessage> chatMessages = new ArrayList<>();
+    private ChatFragment chatFragment;
 
     // BLE Service binding
     private BleGattServerService bleService;
@@ -269,9 +279,17 @@ public class MainActivity extends AppCompatActivity {
         leaveBtn = findViewById(R.id.leave_btn);
         micBtn = findViewById(R.id.mic_btn);
         cameraBtn = findViewById(R.id.camera_btn);
+        chatIv = findViewById(R.id.chat_iv);
 
         backBtn.setOnClickListener( view -> {
             onBackPressed();
+        });
+
+        chatIv.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                openChat();
+            }
         });
 
         // Set up click listeners
@@ -474,6 +492,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onMqttConnected() {
                 AppLogger.i(TAG, "Phase 2 complete: MQTT connected");
+                MqttWebRTC.messageCallbacks = MainActivity.this;
                 ArGenieApp.getInstance().getMqttWebRTC().initializeAllCommonListeners();
 
                 runOnUiThread(() -> addLog("MQTT connected"));
@@ -665,6 +684,35 @@ public class MainActivity extends AppCompatActivity {
         addLog("Waiting for Controller to connect...");
 
         Toast.makeText(this, "Bluetooth Server Started", Toast.LENGTH_SHORT).show();
+
+        demoStart();
+    }
+
+    private void demoStart(){
+        runOnUiThread(() -> {
+            if (currentState == UIState.IN_CALL) {
+                addLog("JOIN_ROOM received while already in call, ignoring");
+                return;
+            }
+
+            addLog("JOIN_ROOM: linkCode=" + linkCode + ", userName=" + userName);
+            MainActivity.this.linkCode = "566-713-279";
+            MainActivity.this.userName = "AR_CAM";
+
+            // Request camera + audio permissions then start connection flow
+            boolean hasCameraPermission = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA)
+                    == PackageManager.PERMISSION_GRANTED;
+            boolean hasAudioPermission = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO)
+                    == PackageManager.PERMISSION_GRANTED;
+
+            if (hasCameraPermission && hasAudioPermission) {
+                startPhase1();
+            } else {
+                ActivityCompat.requestPermissions(MainActivity.this,
+                        new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO},
+                        REQUEST_CALL_PERMISSIONS);
+            }
+        });
     }
 
     private void stopBluetoothService() {
@@ -699,6 +747,29 @@ public class MainActivity extends AppCompatActivity {
         messageLog.append(message).append("\n");
         messageLogTv.setText(messageLog.toString());
         messageScrollView.post(() -> messageScrollView.scrollTo(0, messageLogTv.getBottom()));
+    }
+
+    private void openChat() {
+        chatFragment = new ChatFragment(chatMessages);
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, chatFragment)
+                .addToBackStack(null)
+                .commit();
+    }
+
+    // -------------------- MQTT MESSAGE CALLBACKS --------------------
+
+    @Override
+    public void addMessageCallback(String sessionId, String companyId, ByteBuffer byteBuffer) {
+        String json = StandardCharsets.UTF_8.decode(byteBuffer).toString();
+        ChatMessage chatMessage = ChatMessage.fromJsonString(json);
+        if (chatMessage == null) return;
+        runOnUiThread(() -> {
+            chatMessages.add(chatMessage);
+            if (chatFragment != null && chatFragment.isAdded()) {
+                chatFragment.addMessage(chatMessage);
+            }
+        });
     }
 
     // -------------------- PERMISSIONS --------------------

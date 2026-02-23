@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="?colorSurface">
+
+    <!-- Handle bar -->
+    <View
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:background="@color/neutral_300" />
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/docs_24px"
+            android:contentDescription="Documents" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:text="Documents"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            android:textColor="?colorOnSurface" />
+
+        <ImageView
+            android:id="@+id/docs_close_btn"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="@drawable/arrow_back_ios_24px"
+            android:contentDescription="Close"
+            android:rotation="180" />
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/neutral_100" />
+
+    <!-- Empty state -->
+    <TextView
+        android:id="@+id/docs_empty_tv"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="32dp"
+        android:gravity="center"
+        android:text="No documents shared yet"
+        android:textSize="14sp"
+        android:textColor="?colorOnSurfaceVariant"
+        android:visibility="gone" />
+
+    <!-- Documents list -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/docs_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxHeight="400dp"
+        android:padding="8dp"
+        android:clipToPadding="false"
+        android:nestedScrollingEnabled="true" />
+
+</LinearLayout>

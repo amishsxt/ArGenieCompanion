@@ -76,4 +76,17 @@ dependencies {
     implementation(libs.netty.handler)
     implementation(libs.netty.codec.http2)
 
+    // circle imageview
+    implementation(libs.circleimageview)
+
+    // Video player (ExoPlayer wrapper)
+    implementation(libs.exomedia)
+
+    // Fresco image library
+    implementation("com.facebook.fresco:fresco:3.6.0")
+
+    // Zoomable PhotoDraweeView (works with Fresco)
+    implementation(libs.photodraweeview)
+
+
 }

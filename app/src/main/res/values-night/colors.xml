@@ -1,8 +1,19 @@
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- ================= Dark Theme Colors ================= -->
 
-    <!-- SURFACES -->
+    <!-- PRIMARY (main action color) -->
+    <color name="colorPrimary">#007AFF</color>
+    <color name="colorOnPrimary">#FFFFFF</color>
+
+    <!-- SECONDARY (supporting blue) -->
+    <color name="colorSecondary">#2B7EFE</color>
+    <color name="colorOnSecondary">#FFFFFF</color>
+
+    <!-- Containers -->
+    <color name="colorPrimaryContainer">#0A4FAC</color>
+    <color name="colorOnPrimaryContainer">#FFFFFF</color>
+
+    <!-- Surfaces -->
     <color name="colorSurface">#121212</color>
     <color name="colorOnSurface">#FFFFFF</color>
     <color name="colorSurfaceVariant">#1E1E1E</color>
@@ -10,4 +21,43 @@
 
     <color name="colorError">#BD0101</color>
     <color name="colorOnError">#FFFFFF</color>
+
+    <!-- ================= Utility ================= -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="transparent">#00FFFFFF</color>
+
+    <!-- ================= App Semantic Colors ================= -->
+    <color name="sky_blue">#63ADFD</color>
+    <color name="chat_local_bg">#827B92</color>
+    <color name="chat_remote_bg">#484258</color>
+
+    <color name="bottom_nav_active_indicator">#1E2633</color>
+    <color name="offline_indicator">#F0B100</color>
+    <color name="online_indicator">#00c94f</color>
+
+    <!-- ================= Neutral Scale ================= -->
+    <color name="neutral_900">#1C1B1F</color>
+    <color name="neutral_800">#2A2A2E</color>
+    <color name="neutral_700">#353736</color>
+    <color name="neutral_500">#797C7B</color>
+    <color name="neutral_300">#BABCBB</color>
+    <color name="neutral_100">#DADEE4</color>
+    <color name="neutral_50">#E7EBF1</color>
+
+    <!--ProfileFragment-->
+    <color name="profile_card_01_bg">#27262B</color>
+    <color name="profile_card_02_bg">#18181C</color>
+    <color name="profile_card_03_bg">#27262B</color>
+
+    <!--JoinActivity-->
+    <color name="meeting_code_01_bg">#27262B</color>
+    <color name="meeting_code_02_bg">#3f3f47</color>
+    <color name="meeting_code_03_bg">#27262B</color>
+    <color name="meeting_code_04_bg">#3f3f47</color>
+
+    <!--HostActivity-->
+    <color name="host_card_01_bg">#27262B</color>
+    <color name="host_card_02_bg">#27262B</color>
+    <color name="host_card_03_bg">#18181C</color>
 </resources>
