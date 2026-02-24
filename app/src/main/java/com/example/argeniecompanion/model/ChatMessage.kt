@@ -46,6 +46,7 @@ data class ChatMessage(
     fun fileTypeLabel(): String = when {
         mimeType.startsWith("image/") -> "IMG"
         mimeType == "application/pdf" -> "PDF"
+        mimeType == "video/mp4" -> "VID"
         mimeType == "application/msword" ||
         mimeType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> "DOC"
         else -> "FILE"

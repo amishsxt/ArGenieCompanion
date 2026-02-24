@@ -1,5 +1,6 @@
 package com.example.argeniecompanion.ui;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -68,7 +69,7 @@ public class ChatFragment extends Fragment {
         recyclerView = view.findViewById(R.id.chatRecycleView);
         noMessageTv = view.findViewById(R.id.no_message_text_view);
 
-        adapter = new ChatMessageAdapter(messages);
+        adapter = new ChatMessageAdapter(messages, this::openDocumentViewer);
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerView.setAdapter(adapter);
 
@@ -177,6 +178,25 @@ public class ChatFragment extends Fragment {
             recyclerView.scrollToPosition(messages.size() - 1);
         }
         updateEmptyState();
+    }
+
+    // -------------------- DOCUMENT VIEWER --------------------
+
+    private void openDocumentViewer(ChatMessage message) {
+        String url = message.getMessage();
+        String mimeType = message.getMimeType();
+
+        Uri fileUri = Uri.parse(message.getMessage());
+        String fileName = fileUri.getLastPathSegment();
+
+        DocumentViewerFragment viewer =
+                DocumentViewerFragment.newInstance(url, mimeType, fileName);
+
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, viewer)
+                .addToBackStack(null)
+                .commit();
     }
 
     // -------------------- HELPERS --------------------

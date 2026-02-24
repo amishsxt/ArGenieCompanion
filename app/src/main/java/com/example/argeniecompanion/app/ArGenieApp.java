@@ -5,6 +5,7 @@ import android.content.Context;
 
 import com.example.argeniecompanion.logger.AppLogger;
 import com.example.argeniecompanion.network.ApiRequestManager;
+import com.facebook.drawee.backends.pipeline.Fresco;
 import com.example.argeniecompanion.network.callbacks.ApiAsyncResponseCallback;
 import com.example.argeniecompanion.network.pubsub.MqttWebRTC;
 
@@ -84,6 +85,7 @@ public class ArGenieApp extends Application implements MqttWebRTC.OnWebRTCEvent 
         instance = this;
         config = new Config();
         mqttManager = new MqttManager(this);
+        Fresco.initialize(this);
 
         AppLogger.d(TAG, "ArGenieApp initialized");
     }

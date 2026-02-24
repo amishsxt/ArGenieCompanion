@@ -1,5 +1,6 @@
 package com.example.argeniecompanion.ui;
 
+import android.net.Uri;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,6 +11,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.argeniecompanion.R;
@@ -22,10 +24,18 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     private static final int TYPE_TEXT = 0;
     private static final int TYPE_DOCUMENT = 1;
 
-    private final List<ChatMessage> messages;
+    /** Callback for when the user selects a document message. */
+    public interface OnDocumentClickListener {
+        void onDocumentClick(ChatMessage message);
+    }
 
-    ChatMessageAdapter(List<ChatMessage> messages) {
+    private final List<ChatMessage> messages;
+    @Nullable private final OnDocumentClickListener documentClickListener;
+
+    ChatMessageAdapter(List<ChatMessage> messages,
+                       @Nullable OnDocumentClickListener documentClickListener) {
         this.messages = messages;
+        this.documentClickListener = documentClickListener;
     }
 
     @Override
@@ -52,7 +62,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         if (holder instanceof TextViewHolder) {
             ((TextViewHolder) holder).bind(msg);
         } else if (holder instanceof DocumentViewHolder) {
-            ((DocumentViewHolder) holder).bind(msg);
+            ((DocumentViewHolder) holder).bind(msg, documentClickListener);
         }
     }
 
@@ -106,6 +116,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     static class DocumentViewHolder extends RecyclerView.ViewHolder {
         final LinearLayout messageContainer;
         final LinearLayout senderRow;
+        final LinearLayout docBubble;
         final TextView senderNameTv;
         final ImageView fileIconIv;
         final TextView fileNameTv;
@@ -115,29 +126,32 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             super(itemView);
             messageContainer = itemView.findViewById(R.id.message_container);
             senderRow = itemView.findViewById(R.id.sender_row);
+            docBubble = itemView.findViewById(R.id.doc_bubble);
             senderNameTv = itemView.findViewById(R.id.sender_name_tv);
             fileIconIv = itemView.findViewById(R.id.file_icon_iv);
             fileNameTv = itemView.findViewById(R.id.file_name_tv);
             fileTypeTv = itemView.findViewById(R.id.file_type_tv);
         }
 
-        void bind(ChatMessage msg) {
+        void bind(ChatMessage msg, @Nullable OnDocumentClickListener listener) {
             String label = msg.fileTypeLabel();
             fileTypeTv.setText(label);
-            fileNameTv.setText(msg.getMessage().isEmpty() ? label + " file" : msg.getMessage());
+
+            Uri fileUri = Uri.parse(msg.getMessage());
+            String fileName = fileUri.getLastPathSegment();
+            fileNameTv.setText(fileName);
 
             // Icon based on type
             String mime = msg.getMimeType();
             if (mime.startsWith("image/")) {
                 fileIconIv.setImageResource(R.drawable.photo_library_24px);
-            }
-            else if (mime.startsWith("video/")) {
+            } else if (mime.startsWith("video/")) {
                 fileIconIv.setImageResource(R.drawable.video_library_24px);
-            }
-            else {
+            } else {
                 fileIconIv.setImageResource(R.drawable.docs_24px);
             }
 
+            // Alignment
             if (msg.isFromUser()) {
                 FrameLayout.LayoutParams params =
                         (FrameLayout.LayoutParams) messageContainer.getLayoutParams();
@@ -152,6 +166,11 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                 senderRow.setVisibility(View.VISIBLE);
                 senderNameTv.setText(msg.getSender().isEmpty() ? "Agent" : msg.getSender());
             }
+
+            // Click / focus — whole bubble is the tap target
+            docBubble.setOnClickListener(v -> {
+                if (listener != null) listener.onDocumentClick(msg);
+            });
         }
     }
 }
