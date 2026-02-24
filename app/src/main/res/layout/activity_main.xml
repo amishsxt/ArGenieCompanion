@@ -45,11 +45,29 @@
                 android:layout_weight="1"/>
 
             <ImageView
+                android:id="@+id/documents_iv"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:padding="6dp"
+                android:layout_marginEnd="8dp"
+                android:src="@drawable/docs_24px"
+                app:tint="?colorOnSurface"
+                android:contentDescription="Documents"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:background="@drawable/focus_back_selector" />
+
+            <ImageView
                 android:id="@+id/chat_iv"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:padding="6dp"
                 android:src="@drawable/chat_icon"
-                app:tint="?colorOnSurface" />
+                app:tint="?colorOnSurface"
+                android:contentDescription="Chat"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:background="@drawable/focus_back_selector" />
         </LinearLayout>
 
         <TextView

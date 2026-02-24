@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import com.example.argeniecompanion.app.ArGenieApp
-import com.example.argeniecompanion.logger.AppLogger
 import com.example.argeniecompanion.network.PostJson
 import io.livekit.android.ConnectOptions
 import io.livekit.android.LiveKit
@@ -13,7 +12,11 @@ import io.livekit.android.RoomOptions
 import io.livekit.android.room.Room
 import io.livekit.android.room.track.CameraPosition
 import io.livekit.android.room.track.LocalVideoTrackOptions
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import livekit.org.webrtc.EglBase
 import okhttp3.Call
 import okhttp3.Callback

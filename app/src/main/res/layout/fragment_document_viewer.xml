@@ -1,158 +1,128 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/black">
+    android:background="#000000">
 
-    <!-- Top bar -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="8dp"
-        android:paddingEnd="16dp"
-        android:background="#CC000000">
-
-        <!-- Close button — large touch target for Vuzix -->
-        <ImageView
-            android:id="@+id/viewer_close_btn"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:padding="10dp"
-            android:src="@drawable/arrow_back_ios_24px"
-            app:tint="@color/white"
-            android:contentDescription="Close"
-            android:focusable="true"
-            android:clickable="true"
-            android:background="@drawable/focus_back_selector" />
-
-        <TextView
-            android:id="@+id/viewer_file_name_tv"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="12dp"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@color/white"
-            android:ellipsize="end"
-            android:maxLines="1" />
-
-        <TextView
-            android:id="@+id/viewer_file_type_badge"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="4dp"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:textColor="@color/white"
-            android:background="#33FFFFFF"
-            android:visibility="gone" />
-
-    </LinearLayout>
-
-    <!-- PDF WebView -->
-    <WebView
-        android:id="@+id/viewer_webview"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:visibility="gone" />
-
-    <!-- Image viewer (Fresco zoomable) -->
+    <!-- Image viewer -->
     <me.relex.photodraweeview.PhotoDraweeView
-        android:id="@+id/viewer_image"
+        android:id="@+id/doc_viewer_image"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="match_parent"
         android:visibility="gone" />
 
-    <!-- Other file info screen -->
-    <LinearLayout
-        android:id="@+id/viewer_file_info"
+    <!-- PDF viewer -->
+    <com.example.argeniecompanion.ui.PdfViewportView
+        android:id="@+id/doc_viewer_pdf"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <!-- Unsupported / other file type -->
+    <LinearLayout
+        android:id="@+id/doc_viewer_other"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:gravity="center"
+        android:orientation="vertical"
         android:padding="32dp"
         android:visibility="gone">
 
         <ImageView
-            android:id="@+id/viewer_file_icon"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
+            android:id="@+id/doc_viewer_file_icon"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
             android:src="@drawable/docs_24px"
-            app:tint="@color/white"
-            android:contentDescription="File icon" />
+            app:tint="#AAAAAA" />
 
         <TextView
-            android:id="@+id/viewer_info_name_tv"
+            android:id="@+id/doc_viewer_file_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:textSize="18sp"
+            android:layout_marginTop="16dp"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@color/white"
-            android:gravity="center"
-            android:maxLines="3"
-            android:ellipsize="middle" />
-
-        <TextView
-            android:id="@+id/viewer_info_mime_tv"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textSize="13sp"
-            android:textColor="@color/neutral_300"
             android:gravity="center" />
 
         <TextView
-            android:id="@+id/viewer_open_external_btn"
+            android:id="@+id/doc_viewer_mime_tv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="36dp"
-            android:text="Open in App"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@color/white"
-            android:paddingHorizontal="32dp"
-            android:paddingVertical="14dp"
-            android:background="@drawable/focus_button_selector"
+            android:layout_marginTop="6dp"
+            android:textColor="#AAAAAA"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/doc_viewer_open_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="Open with…"
             android:focusable="true"
-            android:clickable="true"
-            android:contentDescription="Open in external app" />
+            android:focusableInTouchMode="true" />
 
     </LinearLayout>
 
-    <!-- Loading indicator -->
+    <!-- Loading overlay -->
     <FrameLayout
-        android:id="@+id/viewer_loading"
+        android:id="@+id/doc_viewer_loading"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:gravity="center"
+        android:layout_height="match_parent"
+        android:background="#99000000"
         android:visibility="gone">
 
         <ProgressBar
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
             android:layout_gravity="center"
-            android:indeterminateTint="@color/white" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="80dp"
-            android:text="Loading…"
-            android:textSize="14sp"
-            android:textColor="@color/neutral_300" />
+            android:indeterminateTint="#FFFFFF" />
 
     </FrameLayout>
 
-</LinearLayout>
+    <!-- Top bar (always on top) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#CC000000"
+        android:paddingStart="4dp"
+        android:paddingEnd="12dp">
+
+        <ImageView
+            android:id="@+id/doc_viewer_back_btn"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="10dp"
+            android:src="@drawable/arrow_back_ios_24px"
+            app:tint="#FFFFFF"
+            android:contentDescription="Back"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:clickable="true"
+            android:background="@drawable/focus_back_selector" />
+
+        <TextView
+            android:id="@+id/doc_viewer_title"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:singleLine="true"
+            android:ellipsize="middle" />
+
+        <TextView
+            android:id="@+id/doc_viewer_page_info"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#AAAAAA"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+</FrameLayout>

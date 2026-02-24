@@ -1,6 +1,5 @@
 package com.example.argeniecompanion.ui;
 
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -183,18 +182,9 @@ public class ChatFragment extends Fragment {
     // -------------------- DOCUMENT VIEWER --------------------
 
     private void openDocumentViewer(ChatMessage message) {
-        String url = message.getMessage();
-        String mimeType = message.getMimeType();
-
-        Uri fileUri = Uri.parse(message.getMessage());
-        String fileName = fileUri.getLastPathSegment();
-
-        DocumentViewerFragment viewer =
-                DocumentViewerFragment.newInstance(url, mimeType, fileName);
-
         requireActivity().getSupportFragmentManager()
                 .beginTransaction()
-                .replace(R.id.fragment_container, viewer)
+                .replace(R.id.fragment_container, new DocumentViewerFragment(message))
                 .addToBackStack(null)
                 .commit();
     }

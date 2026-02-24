@@ -16,6 +16,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -26,21 +27,21 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AlertDialog;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.argeniecompanion.R;
 import com.example.argeniecompanion.app.ArGenieApp;
-import com.example.argeniecompanion.model.ChatMessage;
 import com.example.argeniecompanion.bluetooth.protocol.BleCommandListener;
 import com.example.argeniecompanion.bluetooth.protocol.BleGattServer;
 import com.example.argeniecompanion.bluetooth.protocol.BleGattServerService;
 import com.example.argeniecompanion.bluetooth.protocol.BleProtocol;
 import com.example.argeniecompanion.livekit.LiveKitWrapper;
 import com.example.argeniecompanion.logger.AppLogger;
+import com.example.argeniecompanion.model.ChatMessage;
 import com.example.argeniecompanion.network.api.RemoteCallApi;
 import com.example.argeniecompanion.network.pubsub.MqttWebRTC;
 
@@ -69,7 +70,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
     private UIState currentState = UIState.NOT_RUNNING;
 
     // UI Elements
-    private ImageView backBtn, chatIv;
+    private ImageView backBtn, chatIv, documentsIv;
     private Button startServerBtn;
     private Button stopServerBtn;
     private TextView statusTv;
@@ -83,9 +84,10 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
 
     private StringBuilder messageLog = new StringBuilder();
 
-    // Chat
+    // Chat & Documents
     private final List<ChatMessage> chatMessages = new ArrayList<>();
-    private ChatFragment chatFragment;
+    private ChatFragment      chatFragment;
+    private DocumentsFragment documentsFragment;
 
     // BLE Service binding
     private BleGattServerService bleService;
@@ -279,18 +281,14 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
         leaveBtn = findViewById(R.id.leave_btn);
         micBtn = findViewById(R.id.mic_btn);
         cameraBtn = findViewById(R.id.camera_btn);
-        chatIv = findViewById(R.id.chat_iv);
+        chatIv      = findViewById(R.id.chat_iv);
+        documentsIv = findViewById(R.id.documents_iv);
 
-        backBtn.setOnClickListener( view -> {
-            onBackPressed();
-        });
+        backBtn.setOnClickListener(view -> onBackPressed());
 
-        chatIv.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                openChat();
-            }
-        });
+        chatIv.setOnClickListener(view -> openChat());
+
+        documentsIv.setOnClickListener(view -> openDocuments());
 
         // Set up click listeners
         startServerBtn.setOnClickListener(v -> {
@@ -333,6 +331,22 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
 
         // Set default focus for Vuzix D-pad navigation
         backBtn.requestFocus();
+
+        // Disable activity controls while any fragment is covering the screen.
+        // This prevents focus leaking through the fragment overlay to buttons behind it.
+        getSupportFragmentManager().addOnBackStackChangedListener(() -> {
+            boolean fragmentActive =
+                    getSupportFragmentManager().getBackStackEntryCount() > 0;
+            setActivityControlsFocusable(!fragmentActive);
+            if (!fragmentActive) {
+                // Restore focus to the visible action button
+                if (stopServerBtn.getVisibility() == View.VISIBLE) {
+                    stopServerBtn.requestFocus();
+                } else {
+                    startServerBtn.requestFocus();
+                }
+            }
+        });
     }
 
     // -------------------- UI STATE MANAGEMENT --------------------
@@ -348,6 +362,8 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                 startServerBtn.setVisibility(View.VISIBLE);
                 stopServerBtn.setVisibility(View.GONE);
                 callControlsLayout.setVisibility(View.GONE);
+                chatIv.setVisibility(View.GONE);
+                documentsIv.setVisibility(View.GONE);
                 // Focus chain: Back <-> Start Server (Stop Server is GONE)
                 backBtn.setNextFocusDownId(R.id.start_server_btn);
                 backBtn.setNextFocusUpId(R.id.start_server_btn);
@@ -363,6 +379,8 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                 startServerBtn.setVisibility(View.GONE);
                 stopServerBtn.setVisibility(View.VISIBLE);
                 callControlsLayout.setVisibility(View.GONE);
+                chatIv.setVisibility(View.GONE);
+                documentsIv.setVisibility(View.GONE);
                 // Focus chain: Back <-> Stop Server (Start Server is GONE)
                 backBtn.setNextFocusDownId(R.id.stop_server_btn);
                 backBtn.setNextFocusUpId(R.id.stop_server_btn);
@@ -382,6 +400,8 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                 startServerBtn.setVisibility(View.GONE);
                 stopServerBtn.setVisibility(View.VISIBLE);
                 callControlsLayout.setVisibility(View.GONE);
+                chatIv.setVisibility(View.GONE);
+                documentsIv.setVisibility(View.GONE);
                 // Focus chain: Back <-> Stop Server
                 backBtn.setNextFocusDownId(R.id.stop_server_btn);
                 backBtn.setNextFocusUpId(R.id.stop_server_btn);
@@ -403,6 +423,8 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
 //                callControlsLayout.setVisibility(View.VISIBLE);
                 updateMicButton();
                 updateCameraButton();
+                chatIv.setVisibility(View.VISIBLE);
+                documentsIv.setVisibility(View.VISIBLE);
                 // Focus chain: Back <-> Stop Server
                 backBtn.setNextFocusDownId(R.id.stop_server_btn);
                 backBtn.setNextFocusUpId(R.id.stop_server_btn);
@@ -685,7 +707,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
 
         Toast.makeText(this, "Bluetooth Server Started", Toast.LENGTH_SHORT).show();
 
-        demoStart();
+        //demoStart();
     }
 
     private void demoStart(){
@@ -757,6 +779,14 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                 .commit();
     }
 
+    private void openDocuments() {
+        documentsFragment = new DocumentsFragment(chatMessages);
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, documentsFragment)
+                .addToBackStack(null)
+                .commit();
+    }
+
     // -------------------- MQTT MESSAGE CALLBACKS --------------------
 
     @Override
@@ -768,6 +798,10 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
             chatMessages.add(chatMessage);
             if (chatFragment != null && chatFragment.isAdded()) {
                 chatFragment.addMessage(chatMessage);
+            }
+            if (!chatMessage.isTextMessage() &&
+                    documentsFragment != null && documentsFragment.isAdded()) {
+                documentsFragment.addDocument(chatMessage);
             }
         });
     }
@@ -855,6 +889,41 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                 updateUIState(UIState.SERVER_RUNNING);
             }
         }
+    }
+
+    /**
+     * Enables or disables focusability on all activity-level interactive controls.
+     * Called by the back stack listener so that views behind a fragment overlay
+     * can never receive D-pad focus while the fragment is visible.
+     */
+    private void setActivityControlsFocusable(boolean focusable) {
+        backBtn.setFocusable(focusable);
+        startServerBtn.setFocusable(focusable);
+        stopServerBtn.setFocusable(focusable);
+        chatIv.setFocusable(focusable);
+        documentsIv.setFocusable(focusable);
+        leaveBtn.setFocusable(focusable);
+        micBtn.setFocusable(focusable);
+        cameraBtn.setFocusable(focusable);
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            androidx.fragment.app.Fragment current =
+                    getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+            if (current instanceof DocumentsFragment) {
+                if (((DocumentsFragment) current).handleNavKey(event.getKeyCode())) {
+                    return true;
+                }
+            }
+            if (current instanceof DocumentViewerFragment) {
+                if (((DocumentViewerFragment) current).handleNavKey(event.getKeyCode())) {
+                    return true;
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event);
     }
 
     @Override

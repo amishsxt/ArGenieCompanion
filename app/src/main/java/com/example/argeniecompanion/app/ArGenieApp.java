@@ -5,9 +5,9 @@ import android.content.Context;
 
 import com.example.argeniecompanion.logger.AppLogger;
 import com.example.argeniecompanion.network.ApiRequestManager;
-import com.facebook.drawee.backends.pipeline.Fresco;
 import com.example.argeniecompanion.network.callbacks.ApiAsyncResponseCallback;
 import com.example.argeniecompanion.network.pubsub.MqttWebRTC;
+import com.facebook.drawee.backends.pipeline.Fresco;
 
 import org.json.JSONArray;
 import org.json.JSONException;

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/doc_item_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="80dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="14dp"
+    android:layout_marginBottom="10dp"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    android:clickable="true"
+    android:background="@drawable/bg_doc_item_selector"
+    android:descendantFocusability="blocksDescendants">
+
+    <!-- File type icon container -->
+    <FrameLayout
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:background="@drawable/bg_doc_item_icon_bg">
+
+        <ImageView
+            android:id="@+id/doc_item_icon"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="center"
+            android:src="@drawable/docs_24px"
+            app:tint="@color/white"
+            android:contentDescription="File type" />
+
+        <!-- Type badge in bottom-right of icon container -->
+        <TextView
+            android:id="@+id/doc_item_type_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="1dp"
+            android:textSize="8sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:background="@color/colorPrimary" />
+
+    </FrameLayout>
+
+    <!-- File info -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="16dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/doc_item_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="@color/neutral_900"
+            android:maxLines="2"
+            android:ellipsize="middle" />
+
+        <TextView
+            android:id="@+id/doc_item_sender"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="12sp"
+            android:textColor="@color/neutral_500" />
+
+    </LinearLayout>
+
+    <!-- Open arrow indicator -->
+    <ImageView
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="8dp"
+        android:src="@drawable/arrow_back_ios_24px"
+        android:rotation="180"
+        app:tint="@color/neutral_300"
+        android:contentDescription="Open" />
+
+</LinearLayout>
