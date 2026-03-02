@@ -1,5 +1,7 @@
 package com.example.argeniecompanion.ui;
 
+import static android.view.View.INVISIBLE;
+import static android.view.View.VISIBLE;
 import static com.example.argeniecompanion.app.ArGenieApp.chatSessionId;
 import static com.example.argeniecompanion.app.ArGenieApp.hostCompanyId;
 import static com.example.argeniecompanion.app.ArGenieApp.userId;
@@ -70,7 +72,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
     private UIState currentState = UIState.NOT_RUNNING;
 
     // UI Elements
-    private ImageView backBtn, chatIv, documentsIv;
+    private ImageView backBtn, chatIv, documentsIv, whiteBoardIv;
     private Button startServerBtn;
     private Button stopServerBtn;
     private TextView statusTv;
@@ -282,12 +284,15 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
         cameraBtn = findViewById(R.id.camera_btn);
         chatIv      = findViewById(R.id.chat_iv);
         documentsIv = findViewById(R.id.documents_iv);
+        whiteBoardIv = findViewById(R.id.white_board_iv);
 
         backBtn.setOnClickListener(view -> onBackPressed());
 
         chatIv.setOnClickListener(view -> openChat());
 
         documentsIv.setOnClickListener(view -> openDocuments());
+
+        whiteBoardIv.setOnClickListener( view -> openWhiteBoard());
 
         // Set up click listeners
         startServerBtn.setOnClickListener(v -> {
@@ -363,6 +368,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                 callControlsLayout.setVisibility(View.GONE);
                 chatIv.setVisibility(View.GONE);
                 documentsIv.setVisibility(View.GONE);
+                whiteBoardIv.setVisibility(View.GONE);
                 // Focus chain: Back <-> Start Server (Stop Server is GONE)
                 backBtn.setNextFocusDownId(R.id.start_server_btn);
                 backBtn.setNextFocusUpId(R.id.start_server_btn);
@@ -380,6 +386,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                 callControlsLayout.setVisibility(View.GONE);
                 chatIv.setVisibility(View.GONE);
                 documentsIv.setVisibility(View.GONE);
+                whiteBoardIv.setVisibility(View.GONE);
                 // Focus chain: Back <-> Stop Server (Start Server is GONE)
                 backBtn.setNextFocusDownId(R.id.stop_server_btn);
                 backBtn.setNextFocusUpId(R.id.stop_server_btn);
@@ -401,6 +408,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                 callControlsLayout.setVisibility(View.GONE);
                 chatIv.setVisibility(View.GONE);
                 documentsIv.setVisibility(View.GONE);
+                whiteBoardIv.setVisibility(View.GONE);
                 // Focus chain: Back <-> Stop Server
                 backBtn.setNextFocusDownId(R.id.stop_server_btn);
                 backBtn.setNextFocusUpId(R.id.stop_server_btn);
@@ -424,6 +432,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                 updateCameraButton();
                 chatIv.setVisibility(View.VISIBLE);
                 documentsIv.setVisibility(View.VISIBLE);
+                whiteBoardIv.setVisibility(View.VISIBLE);
                 // Focus chain: Back <-> Stop Server
                 backBtn.setNextFocusDownId(R.id.stop_server_btn);
                 backBtn.setNextFocusUpId(R.id.stop_server_btn);
@@ -706,7 +715,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
 
         Toast.makeText(this, "Bluetooth Server Started", Toast.LENGTH_SHORT).show();
 
-        //demoStart();
+        demoStart();
     }
 
     private void demoStart(){
@@ -717,8 +726,8 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
             }
 
             addLog("JOIN_ROOM: linkCode=" + linkCode + ", userName=" + userName);
-            MainActivity.this.linkCode = "566-713-279";
-            MainActivity.this.userName = "AR_CAM";
+            MainActivity.this.linkCode = "173-888-400";
+            MainActivity.this.userName = "AR";
 
             // Request camera + audio permissions then start connection flow
             boolean hasCameraPermission = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA)
@@ -782,6 +791,23 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
         documentsFragment = new DocumentsFragment(chatMessages);
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.fragment_container, documentsFragment)
+                .addToBackStack(null)
+                .commit();
+    }
+
+    private void openWhiteBoard() {
+        String domain = ArGenieApp.getInstance().getConfig().getWhiteBoardUrl();
+        String key = ArGenieApp.getInstance().getConfig().getWhiteBoardKey();
+        String roomName = videoSessionId;
+
+        String url = domain + roomName + "," + key + "," + userName;
+        AppLogger.i(TAG, "openWhiteBoard url=" + url
+                + " | videoSessionId=" + videoSessionId
+                + " | chatSessionId=" + chatSessionId
+                + " | meetingId=" + ArGenieApp.currentMeetingId);
+
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, new WhiteBoardFragment(url))
                 .addToBackStack(null)
                 .commit();
     }
@@ -901,6 +927,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
         stopServerBtn.setFocusable(focusable);
         chatIv.setFocusable(focusable);
         documentsIv.setFocusable(focusable);
+        whiteBoardIv.setFocusable(focusable);
         leaveBtn.setFocusable(focusable);
         micBtn.setFocusable(focusable);
         cameraBtn.setFocusable(focusable);

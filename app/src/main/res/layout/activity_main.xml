@@ -45,6 +45,20 @@
                 android:layout_weight="1"/>
 
             <ImageView
+                android:id="@+id/white_board_iv"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:padding="6dp"
+                android:layout_marginEnd="8dp"
+                android:src="@drawable/draw_24px"
+                app:tint="?colorOnSurface"
+                android:contentDescription="Whiteboard"
+                android:visibility="gone"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:background="@drawable/focus_back_selector" />
+
+            <ImageView
                 android:id="@+id/documents_iv"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
