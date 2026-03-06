@@ -72,12 +72,11 @@ public class BleGattServerService extends Service {
         // Set up internal command listener that forwards to registered listener
         gattServer.setCommandListener(new BleCommandListener() {
             @Override
-            public boolean onJoinRoom(String linkCode, String userName) {
+            public void onJoinRoom(String linkCode, String userName) {
                 Log.i(TAG, "JOIN_ROOM: linkCode=" + linkCode + ", userName=" + userName);
                 if (commandListener != null) {
-                    return commandListener.onJoinRoom(linkCode, userName);
+                    commandListener.onJoinRoom(linkCode, userName);
                 }
-                return true;
             }
 
             @Override

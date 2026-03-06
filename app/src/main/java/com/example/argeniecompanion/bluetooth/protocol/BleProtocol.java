@@ -50,6 +50,7 @@ public final class BleProtocol {
     public static final byte CMD_VIDEO_UNMUTE = 0x06;
     public static final byte CMD_PING = 0x07;
     public static final byte CMD_GET_STATUS = 0x08;
+    public static final byte CMD_ROOM_JOINED = 0x09; // Async notification: glasses → phone after joining
 
     // Response command mask (command | 0x80)
     public static final byte RESPONSE_MASK = (byte) 0x80;
@@ -103,6 +104,8 @@ public final class BleProtocol {
                 return "PING";
             case CMD_GET_STATUS:
                 return "GET_STATUS";
+            case CMD_ROOM_JOINED:
+                return "ROOM_JOINED";
             default:
                 return "UNKNOWN(0x" + String.format("%02X", command) + ")";
         }

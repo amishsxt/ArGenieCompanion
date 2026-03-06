@@ -8,12 +8,12 @@ public interface BleCommandListener {
 
     /**
      * Called when a JOIN_ROOM command is received.
+     * The result must be reported asynchronously via BleGattServerService.sendDeferredCommandResult().
      *
      * @param linkCode The room link code to join
      * @param userName The user's display name
-     * @return true if the join was successful, false otherwise
      */
-    boolean onJoinRoom(String linkCode, String userName);
+    void onJoinRoom(String linkCode, String userName);
 
     /**
      * Called when a LEAVE_ROOM command is received.

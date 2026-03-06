@@ -165,7 +165,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
 
     private final BleCommandListener commandListener = new BleCommandListener() {
         @Override
-        public boolean onJoinRoom(String linkCode, String userName) {
+        public void onJoinRoom(String linkCode, String userName) {
             runOnUiThread(() -> {
                 if (currentState == UIState.IN_CALL) {
                     addLog("JOIN_ROOM received while already in call, ignoring");
@@ -190,7 +190,6 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                             REQUEST_CALL_PERMISSIONS);
                 }
             });
-            return true;
         }
 
         @Override
@@ -474,7 +473,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                             statusTv.setText(getString(R.string.status_error, message));
                             addLog("Error: " + message);
                             updateUIState(UIState.SERVER_RUNNING);
-                            sendBleCommandResult(BleProtocol.CMD_JOIN_ROOM, false);
+                            sendBleCommandResult(BleProtocol.CMD_ROOM_JOINED, false);
                         });
                     }
                 });
@@ -503,7 +502,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                     statusTv.setText(getString(R.string.status_error, error));
                     addLog("Error: " + error);
                     updateUIState(UIState.SERVER_RUNNING);
-                    sendBleCommandResult(BleProtocol.CMD_JOIN_ROOM, false);
+                    sendBleCommandResult(BleProtocol.CMD_ROOM_JOINED, false);
                 });
             }
         });
@@ -528,7 +527,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                     statusTv.setText(getString(R.string.status_error, error));
                     addLog("MQTT error: " + error);
                     updateUIState(UIState.SERVER_RUNNING);
-                    sendBleCommandResult(BleProtocol.CMD_JOIN_ROOM, false);
+                    sendBleCommandResult(BleProtocol.CMD_ROOM_JOINED, false);
                 });
             }
         });
@@ -548,7 +547,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                             String message = responseBody.getString("message");
                             Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
                             addLog("Join failed: " + message);
-                            sendBleCommandResult(BleProtocol.CMD_JOIN_ROOM, false);
+                            sendBleCommandResult(BleProtocol.CMD_ROOM_JOINED, false);
                             leaveSession(false);
                             return;
                         }
@@ -587,7 +586,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                     Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
                     addLog("Error: " + message);
                     updateUIState(UIState.SERVER_RUNNING);
-                    sendBleCommandResult(BleProtocol.CMD_JOIN_ROOM, false);
+                    sendBleCommandResult(BleProtocol.CMD_ROOM_JOINED, false);
                 });
             }
         });
@@ -614,8 +613,8 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                     updateUIState(UIState.IN_CALL);
                     updateBleServiceState();
 
-                    // Send deferred JOIN_ROOM success response to controller
-                    sendBleCommandResult(BleProtocol.CMD_JOIN_ROOM, true);
+                    // Notify controller that glasses have joined the room
+                    sendBleCommandResult(BleProtocol.CMD_ROOM_JOINED, true);
                 });
             }
 
@@ -628,7 +627,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                     updateUIState(UIState.SERVER_RUNNING);
 
                     // Send deferred JOIN_ROOM failure response to controller
-                    sendBleCommandResult(BleProtocol.CMD_JOIN_ROOM, false);
+                    sendBleCommandResult(BleProtocol.CMD_ROOM_JOINED, false);
                 });
             }
         });
