@@ -17,9 +17,13 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.view.KeyEvent;
 import android.view.View;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -52,8 +56,11 @@ import org.json.JSONObject;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity implements MqttWebRTC.MessageCallbacks {
@@ -71,6 +78,8 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
 
     private UIState currentState = UIState.NOT_RUNNING;
 
+    private static final long MESSAGE_PREVIEW_DURATION_MS = 5000;
+
     // UI Elements
     private ImageView backBtn, chatIv, documentsIv, whiteBoardIv;
     private Button startServerBtn;
@@ -78,13 +87,33 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
     private TextView statusTv;
     private TextView linkCodeTv;
     private TextView messageLogTv;
+    private TextView messagePreviewTv;
+    private TextView messagePreviewTimeTv;
+    private LinearLayout messagePreviewContainer;
     private ScrollView messageScrollView;
     private LinearLayout callControlsLayout;
     private Button leaveBtn;
     private Button micBtn;
     private Button cameraBtn;
 
-    private StringBuilder messageLog = new StringBuilder();
+    private final StringBuilder messageLog = new StringBuilder();
+    private static final long FADE_DURATION_MS = 300;
+
+    private final Handler previewHandler = new Handler(Looper.getMainLooper());
+    private final Runnable hidePreviewRunnable = () -> {
+        if (messagePreviewContainer == null) return;
+        messagePreviewContainer.animate()
+                .alpha(0f)
+                .setDuration(FADE_DURATION_MS)
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        messagePreviewContainer.setVisibility(View.GONE);
+                        messagePreviewContainer.setAlpha(1f);
+                    }
+                })
+                .start();
+    };
 
     // Chat & Documents
     private final List<ChatMessage> chatMessages = new ArrayList<>();
@@ -282,9 +311,12 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
         leaveBtn = findViewById(R.id.leave_btn);
         micBtn = findViewById(R.id.mic_btn);
         cameraBtn = findViewById(R.id.camera_btn);
-        chatIv      = findViewById(R.id.chat_iv);
-        documentsIv = findViewById(R.id.documents_iv);
-        whiteBoardIv = findViewById(R.id.white_board_iv);
+        chatIv          = findViewById(R.id.chat_iv);
+        documentsIv     = findViewById(R.id.documents_iv);
+        whiteBoardIv    = findViewById(R.id.white_board_iv);
+        messagePreviewTv        = findViewById(R.id.message_preview_tv);
+        messagePreviewTimeTv    = findViewById(R.id.message_preview_time_tv);
+        messagePreviewContainer = findViewById(R.id.message_preview_container);
 
         backBtn.setOnClickListener(view -> onBackPressed());
 
@@ -665,6 +697,10 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
         // Clear session state so the next join starts fresh
         ArGenieApp.clearSession();
 
+        chatMessages.clear();
+        chatFragment = null;
+        documentsFragment = null;
+
         linkCode = null;
         micMuted = false;
         videoMuted = false;
@@ -726,8 +762,8 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
             }
 
             addLog("JOIN_ROOM: linkCode=" + linkCode + ", userName=" + userName);
-            MainActivity.this.linkCode = "173-888-400";
-            MainActivity.this.userName = "AR";
+            MainActivity.this.linkCode = "929-845-519";
+            MainActivity.this.userName = "VUZIX";
 
             // Request camera + audio permissions then start connection flow
             boolean hasCameraPermission = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA)
@@ -828,7 +864,30 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                     documentsFragment != null && documentsFragment.isAdded()) {
                 documentsFragment.addDocument(chatMessage);
             }
+            // Show temporary preview on main screen when in a call
+            if (currentState == UIState.IN_CALL && chatMessage.isTextMessage()) {
+                showMessagePreview(chatMessage.getMessage());
+            }
         });
+    }
+
+    private static final SimpleDateFormat TIME_FORMAT =
+            new SimpleDateFormat("h:mm a", Locale.getDefault());
+
+    private void showMessagePreview(String text) {
+        messagePreviewTv.setText(text);
+        messagePreviewTimeTv.setText(TIME_FORMAT.format(new Date()));
+        // Cancel any running fade-out before showing again
+        messagePreviewContainer.animate().cancel();
+        messagePreviewContainer.setAlpha(0f);
+        messagePreviewContainer.setVisibility(View.VISIBLE);
+        messagePreviewContainer.animate()
+                .alpha(1f)
+                .setDuration(FADE_DURATION_MS)
+                .setListener(null)
+                .start();
+        previewHandler.removeCallbacks(hidePreviewRunnable);
+        previewHandler.postDelayed(hidePreviewRunnable, MESSAGE_PREVIEW_DURATION_MS);
     }
 
     // -------------------- PERMISSIONS --------------------
@@ -955,6 +1014,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        previewHandler.removeCallbacks(hidePreviewRunnable);
 
         // Leave session if still in call
         if (currentState == UIState.IN_CALL) {

@@ -34,6 +34,7 @@ import cz.msebera.android.httpclient.entity.StringEntity;
 public class ChatFragment extends Fragment {
 
     private static final String TAG = ChatFragment.class.getSimpleName();
+    private static final int MAX_VISIBLE_MESSAGES = 3;
 
     private static final String HISTORY_QUERY =
             "query sessionDetails($sessionId: String!) {" +
@@ -52,6 +53,7 @@ public class ChatFragment extends Fragment {
     private TextView noMessageTv;
     private ChatMessageAdapter adapter;
     private final List<ChatMessage> messages;
+    private final List<ChatMessage> displayMessages = new ArrayList<>();
 
     public ChatFragment(List<ChatMessage> initialMessages) {
         this.messages = new ArrayList<>(initialMessages);
@@ -68,8 +70,14 @@ public class ChatFragment extends Fragment {
         recyclerView = view.findViewById(R.id.chatRecycleView);
         noMessageTv = view.findViewById(R.id.no_message_text_view);
 
-        adapter = new ChatMessageAdapter(messages, this::openDocumentViewer);
-        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+        // Seed displayMessages with the last MAX_VISIBLE_MESSAGES from any pre-loaded messages
+        syncDisplayMessages();
+
+        adapter = new ChatMessageAdapter(displayMessages, this::openDocumentViewer);
+        LinearLayoutManager lm = new LinearLayoutManager(requireContext()) {
+            @Override public boolean canScrollVertically() { return false; }
+        };
+        recyclerView.setLayoutManager(lm);
         recyclerView.setAdapter(adapter);
 
         updateEmptyState();
@@ -158,9 +166,7 @@ public class ChatFragment extends Fragment {
 
             // Prepend history before any live MQTT messages
             messages.addAll(0, historical);
-            adapter.notifyItemRangeInserted(0, historical.size());
-            recyclerView.scrollToPosition(messages.size() - 1);
-            updateEmptyState();
+            syncDisplayMessages();
 
         } catch (JSONException e) {
             AppLogger.e(TAG, "parseHistoryResponse error", e);
@@ -172,11 +178,7 @@ public class ChatFragment extends Fragment {
     /** Called from MainActivity on the main thread when a new MQTT message arrives. */
     public void addMessage(ChatMessage message) {
         messages.add(message);
-        if (adapter != null) {
-            adapter.notifyItemInserted(messages.size() - 1);
-            recyclerView.scrollToPosition(messages.size() - 1);
-        }
-        updateEmptyState();
+        syncDisplayMessages();
     }
 
     // -------------------- DOCUMENT VIEWER --------------------
@@ -190,6 +192,15 @@ public class ChatFragment extends Fragment {
     }
 
     // -------------------- HELPERS --------------------
+
+    /** Keeps displayMessages in sync as the last MAX_VISIBLE_MESSAGES of all messages. */
+    private void syncDisplayMessages() {
+        displayMessages.clear();
+        int start = Math.max(0, messages.size() - MAX_VISIBLE_MESSAGES);
+        displayMessages.addAll(messages.subList(start, messages.size()));
+        if (adapter != null) adapter.notifyDataSetChanged();
+        updateEmptyState();
+    }
 
     private void updateEmptyState() {
         if (messages.isEmpty()) {

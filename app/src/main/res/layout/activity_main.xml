@@ -182,53 +182,69 @@
 
         </LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@android:color/darker_gray"
-            android:layout_marginBottom="16dp"
-            android:focusable="false" />
-
-        <TextView
+        <!-- Message preview: shown temporarily when a chat message arrives during a call -->
+        <LinearLayout
+            android:id="@+id/message_preview_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Message Log:"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="?colorOnSurface"
-            android:paddingBottom="8dp"
-            android:focusable="false" />
+            android:layout_marginTop="12dp"
+            android:orientation="vertical"
+            android:background="#EE1A237E"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="10dp"
+            android:visibility="gone"
+            android:focusable="false">
 
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="NEW MESSAGE"
+                android:textSize="10sp"
+                android:textColor="#B3FFFFFF"
+                android:textStyle="bold"
+                android:letterSpacing="0.12"
+                android:paddingBottom="3dp"
+                android:focusable="false" />
+
+            <TextView
+                android:id="@+id/message_preview_tv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="15sp"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:focusable="false" />
+
+            <TextView
+                android:id="@+id/message_preview_time_tv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:textSize="11sp"
+                android:textColor="#80FFFFFF"
+                android:focusable="false" />
+
+        </LinearLayout>
+
+        <!-- Debug log (hidden on device, kept for reference) -->
         <ScrollView
             android:id="@+id/message_scroll_view"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:background="?colorSurface"
-            android:padding="12dp"
-            android:clickable="false"
+            android:visibility="gone"
             android:focusable="false">
 
             <TextView
                 android:id="@+id/message_log_tv"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Waiting for server to start...\n"
-                android:textSize="13sp"
-                android:textColor="?colorOnSurface"
-                android:fontFamily="monospace"
                 android:focusable="false" />
         </ScrollView>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Make sure Device A is scanning for devices"
-            android:textSize="12sp"
-            android:textColor="?colorOnSurfaceVariant"
-            android:gravity="center"
-            android:paddingTop="8dp"
-            android:focusable="false" />
 
     </LinearLayout>
 
