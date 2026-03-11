@@ -95,6 +95,8 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
     private Button leaveBtn;
     private Button micBtn;
     private Button cameraBtn;
+    private ImageView micIv, cameraIv;
+    private LinearLayout deviceStatusLly;
 
     private final StringBuilder messageLog = new StringBuilder();
     private static final long FADE_DURATION_MS = 300;
@@ -317,6 +319,9 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
         messagePreviewTv        = findViewById(R.id.message_preview_tv);
         messagePreviewTimeTv    = findViewById(R.id.message_preview_time_tv);
         messagePreviewContainer = findViewById(R.id.message_preview_container);
+        micIv = findViewById(R.id.mic_iv);
+        cameraIv = findViewById(R.id.camera_iv);
+        deviceStatusLly = findViewById(R.id.device_status_lly);
 
         backBtn.setOnClickListener(view -> onBackPressed());
 
@@ -401,6 +406,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                 chatIv.setVisibility(View.GONE);
                 documentsIv.setVisibility(View.GONE);
                 whiteBoardIv.setVisibility(View.GONE);
+                deviceStatusLly.setVisibility(View.GONE);
                 // Focus chain: Back <-> Start Server (Stop Server is GONE)
                 backBtn.setNextFocusDownId(R.id.start_server_btn);
                 backBtn.setNextFocusUpId(R.id.start_server_btn);
@@ -419,6 +425,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                 chatIv.setVisibility(View.GONE);
                 documentsIv.setVisibility(View.GONE);
                 whiteBoardIv.setVisibility(View.GONE);
+                deviceStatusLly.setVisibility(View.GONE);
                 // Focus chain: Back <-> Stop Server (Start Server is GONE)
                 backBtn.setNextFocusDownId(R.id.stop_server_btn);
                 backBtn.setNextFocusUpId(R.id.stop_server_btn);
@@ -441,6 +448,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                 chatIv.setVisibility(View.GONE);
                 documentsIv.setVisibility(View.GONE);
                 whiteBoardIv.setVisibility(View.GONE);
+                deviceStatusLly.setVisibility(View.GONE);
                 // Focus chain: Back <-> Stop Server
                 backBtn.setNextFocusDownId(R.id.stop_server_btn);
                 backBtn.setNextFocusUpId(R.id.stop_server_btn);
@@ -462,9 +470,11 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
 //                callControlsLayout.setVisibility(View.VISIBLE);
                 updateMicButton();
                 updateCameraButton();
+                deviceStatusLly.setVisibility(View.VISIBLE);
+                updateVideoAndMicUi();
                 chatIv.setVisibility(View.VISIBLE);
-                documentsIv.setVisibility(View.VISIBLE);
-                whiteBoardIv.setVisibility(View.VISIBLE);
+//                documentsIv.setVisibility(View.VISIBLE);
+//                whiteBoardIv.setVisibility(View.VISIBLE);
                 // Focus chain: Back <-> Stop Server
                 backBtn.setNextFocusDownId(R.id.stop_server_btn);
                 backBtn.setNextFocusUpId(R.id.stop_server_btn);
@@ -647,9 +657,10 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
                     AppLogger.i(TAG, "Phase 4 complete: LiveKit connected, streaming video");
                     addLog("LiveKit connected - In call");
 
-                    // Initialize state - camera is on by default, mic starts unmuted
-                    micMuted = false;
+                    // Camera on by default, mic starts muted
+                    micMuted = true;
                     videoMuted = false;
+                    liveKitWrapper.enableMicrophone(false);
 
                     updateUIState(UIState.IN_CALL);
                     updateBleServiceState();
@@ -713,9 +724,15 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
         sendBleCommandResult(BleProtocol.CMD_LEAVE_ROOM, true);
     }
 
+    private void updateVideoAndMicUi(){
+        micIv.setImageResource(micMuted ? R.drawable.mic_off_24px : R.drawable.mic_24px);
+        cameraIv.setImageResource(videoMuted ? R.drawable.videocam_off_24px : R.drawable.videocam_24px);
+    }
+
     // -------------------- BLE SERVICE STATE --------------------
 
     private void updateBleServiceState() {
+        updateVideoAndMicUi();
         if (bleServiceBound && bleService != null) {
             bleService.setMicMuted(micMuted);
             bleService.setVideoMuted(videoMuted);
@@ -751,7 +768,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
 
         Toast.makeText(this, "Bluetooth Server Started", Toast.LENGTH_SHORT).show();
 
-        demoStart();
+        //demoStart();
     }
 
     private void demoStart(){

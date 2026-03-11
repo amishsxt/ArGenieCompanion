@@ -95,17 +95,62 @@
             android:gravity="center"
             android:focusable="false" />
 
-        <TextView
-            android:id="@+id/link_code_tv"
+        <LinearLayout
+            android:id="@+id/device_status_lly"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@android:color/holo_blue_dark"
-            android:paddingBottom="16dp"
+            android:orientation="vertical"
             android:gravity="center"
-            android:visibility="gone"
-            android:focusable="false" />
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/link_code_tv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/holo_blue_dark"
+                android:paddingBottom="16dp"
+                android:gravity="center"
+                android:focusable="false" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginBottom="15dp">
+
+                <ImageView
+                    android:id="@+id/camera_iv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/videocam_off_24px"
+                    app:tint="@color/white"
+                    android:background="@drawable/bg_avatar_circle"
+                    android:padding="8dp"
+                    android:backgroundTint="@color/colorPrimary"
+                    android:focusable="false"/>
+
+                <View
+                    android:layout_width="10dp"
+                    android:layout_height="1dp"
+                    android:focusable="false"/>
+
+                <ImageView
+                    android:id="@+id/mic_iv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/mic_off_24px"
+                    app:tint="@color/white"
+                    android:background="@drawable/bg_avatar_circle"
+                    android:padding="8dp"
+                    android:backgroundTint="@color/colorPrimary"
+                    android:focusable="false"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
 
         <Button
             android:id="@+id/start_server_btn"
