@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
     private static final long MESSAGE_PREVIEW_DURATION_MS = 5000;
 
     // UI Elements
-    private ImageView backBtn, chatIv, documentsIv, whiteBoardIv;
+    private ImageView backBtn, chatIv, documentsIv, whiteBoardIv, arIv;
     private Button startServerBtn;
     private Button stopServerBtn;
     private TextView statusTv;
@@ -316,6 +316,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
         chatIv          = findViewById(R.id.chat_iv);
         documentsIv     = findViewById(R.id.documents_iv);
         whiteBoardIv    = findViewById(R.id.white_board_iv);
+        arIv            = findViewById(R.id.ar_iv);
         messagePreviewTv        = findViewById(R.id.message_preview_tv);
         messagePreviewTimeTv    = findViewById(R.id.message_preview_time_tv);
         messagePreviewContainer = findViewById(R.id.message_preview_container);
@@ -330,6 +331,8 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
         documentsIv.setOnClickListener(view -> openDocuments());
 
         whiteBoardIv.setOnClickListener( view -> openWhiteBoard());
+
+        arIv.setOnClickListener(view -> startActivity(new Intent(this, ArMarkerActivity.class)));
 
         // Set up click listeners
         startServerBtn.setOnClickListener(v -> {
@@ -1004,6 +1007,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
         chatIv.setFocusable(focusable);
         documentsIv.setFocusable(focusable);
         whiteBoardIv.setFocusable(focusable);
+        arIv.setFocusable(focusable);
         leaveBtn.setFocusable(focusable);
         micBtn.setFocusable(focusable);
         cameraBtn.setFocusable(focusable);

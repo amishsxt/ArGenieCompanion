@@ -45,7 +45,10 @@
         </activity>
         <activity
             android:name=".ui.MainActivity"
-            android:exported="false"></activity>
+            android:exported="false" />
+        <activity
+            android:name=".ui.ArMarkerActivity"
+            android:exported="false" />
 
         <service
             android:name=".bluetooth.BluetoothServerService"

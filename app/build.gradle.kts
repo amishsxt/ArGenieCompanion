@@ -85,6 +85,9 @@ dependencies {
     // Fresco image library
     implementation("com.facebook.fresco:fresco:3.6.0")
 
+    // OpenCV 4.9 — includes objdetect module (ArUco moved from contrib in 4.7+)
+    implementation("org.opencv:opencv:4.9.0")
+
     // Zoomable PhotoDraweeView (works with Fresco)
     implementation(libs.photodraweeview)
 
