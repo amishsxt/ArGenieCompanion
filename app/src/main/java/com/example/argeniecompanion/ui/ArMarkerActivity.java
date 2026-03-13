@@ -7,6 +7,8 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.util.SizeF;
 import android.widget.ImageView;
@@ -21,6 +23,8 @@ import androidx.core.content.ContextCompat;
 import com.example.argeniecompanion.R;
 import com.example.argeniecompanion.ar.FrameBuffer;
 import com.example.argeniecompanion.ar.camera.ArCamera2Manager;
+import com.example.argeniecompanion.ar.pose.AnnotationRenderItem;
+import com.example.argeniecompanion.ar.pose.PoseMemoryStore;
 import com.example.argeniecompanion.ar.render.ArAnnotationRenderer;
 import com.example.argeniecompanion.ar.sensor.RotationTracker;
 import com.example.argeniecompanion.ar.vision.MarkerDetector;
@@ -34,36 +38,42 @@ import java.util.List;
 /**
  * Host activity for the AR marker-based annotation system.
  *
- * Component wiring:
- *   Camera2  →  FrameBuffer  →  MarkerDetector  →  [Phase 4: AnnotationManager]
- *   Camera2  →  SurfaceTexture  →  ArAnnotationRenderer  →  GLSurfaceView
- *   SensorManager  →  RotationTracker  →  [Phase 4: AnnotationManager]
- *
- * Phase completion status:
+ * Phase completion:
  *   ✓ Phase 1 — Camera2 preview in GLSurfaceView
  *   ✓ Phase 2 — ArUco detection + solvePnP pose estimation
  *   ✓ Phase 3 — Rotation tracking (TYPE_GAME_ROTATION_VECTOR)
- *   ○ Phase 4 — Pose memory store + annotation lifecycle (next)
- *   ○ Phase 5 — Billboard quad annotation rendering (next)
+ *   ✓ Phase 4 — Pose memory store + annotation lifecycle (fade-out)
+ *   ✓ Phase 5 — Canvas annotation overlay (label box + dot + line)
  */
 public class ArMarkerActivity extends AppCompatActivity
         implements ArAnnotationRenderer.SurfaceTextureListener {
 
     private static final String TAG = "ArMarkerActivity";
 
+    /** Overlay refresh interval during fade animation (≈30 fps). */
+    private static final long OVERLAY_REFRESH_MS = 33;
+
     // ---- Views ----
-    private GLSurfaceView glSurfaceView;
-    private TextView      detectionStatusTv;
+    private GLSurfaceView         glSurfaceView;
+    private AnnotationOverlayView annotationOverlay;
+    private TextView              detectionStatusTv;
 
     // ---- AR components ----
-    private final FrameBuffer    frameBuffer    = new FrameBuffer();
+    private final FrameBuffer   frameBuffer    = new FrameBuffer();
     private ArAnnotationRenderer renderer;
-    private ArCamera2Manager     camera2Manager;
-    private RotationTracker      rotationTracker;
-    private MarkerDetector       markerDetector;
+    private ArCamera2Manager    camera2Manager;
+    private RotationTracker     rotationTracker;
+    private MarkerDetector      markerDetector;
+    private PoseMemoryStore     poseMemoryStore;
 
-    // Held so we can reopen the camera on resume without waiting for onSurfaceTextureReady again
+    // Cached so we can reopen the camera on resume without re-entering onSurfaceTextureReady
     private SurfaceTexture cachedSurfaceTexture;
+    private double         focalLengthPx = 960.0;
+    private boolean        isResumed     = false;
+
+    // ---- Fade-animation handler ----
+    private final Handler  mainHandler       = new Handler(Looper.getMainLooper());
+    private final Runnable overlayRefreshTask = this::refreshOverlay;
 
     // ---- Permission launcher ----
     private final ActivityResultLauncher<String> cameraPermLauncher =
@@ -89,9 +99,9 @@ public class ArMarkerActivity extends AppCompatActivity
         backBtn.setOnClickListener(v -> finish());
         backBtn.requestFocus();
 
-        detectionStatusTv = findViewById(R.id.detection_status_tv);
+        detectionStatusTv   = findViewById(R.id.detection_status_tv);
+        annotationOverlay   = findViewById(R.id.annotation_overlay);
 
-        // Load OpenCV native library (synchronous in 4.5.1+)
         if (!OpenCVLoader.initLocal()) {
             Toast.makeText(this, "OpenCV failed to initialize", Toast.LENGTH_LONG).show();
             finish();
@@ -99,6 +109,7 @@ public class ArMarkerActivity extends AppCompatActivity
         }
 
         rotationTracker = new RotationTracker(this);
+        poseMemoryStore = new PoseMemoryStore();
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
@@ -111,10 +122,11 @@ public class ArMarkerActivity extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
+        isResumed = true;
         if (glSurfaceView != null) glSurfaceView.onResume();
         rotationTracker.start();
 
-        // If we already have a SurfaceTexture (resume after pause), reopen camera directly
+        // Reopen camera on resume if we already have a SurfaceTexture
         if (cachedSurfaceTexture != null && camera2Manager == null) {
             openCameraWithSurface(cachedSurfaceTexture);
         }
@@ -123,6 +135,8 @@ public class ArMarkerActivity extends AppCompatActivity
     @Override
     protected void onPause() {
         super.onPause();
+        isResumed = false;
+        mainHandler.removeCallbacks(overlayRefreshTask);
         if (glSurfaceView != null) glSurfaceView.onPause();
         rotationTracker.stop();
         closeCamera();
@@ -132,7 +146,6 @@ public class ArMarkerActivity extends AppCompatActivity
     protected void onDestroy() {
         super.onDestroy();
         if (glSurfaceView != null) {
-            // Release GL objects on the GL thread
             glSurfaceView.queueEvent(() -> {
                 if (renderer != null) renderer.release();
             });
@@ -144,7 +157,6 @@ public class ArMarkerActivity extends AppCompatActivity
     private void initGlSurface() {
         glSurfaceView = findViewById(R.id.gl_surface_view);
         glSurfaceView.setEGLContextClientVersion(2);
-        // Preserve the EGL context on pause so we don't recreate the OES texture every resume
         glSurfaceView.setPreserveEGLContextOnPause(true);
 
         renderer = new ArAnnotationRenderer(glSurfaceView);
@@ -156,12 +168,9 @@ public class ArMarkerActivity extends AppCompatActivity
 
     // ---- ArAnnotationRenderer.SurfaceTextureListener ----
 
-    /**
-     * Called once from the GL thread when the OES SurfaceTexture is created.
-     * We must open Camera2 from the main thread, so post to UI thread.
-     */
     @Override
     public void onSurfaceTextureReady(SurfaceTexture surfaceTexture) {
+        // Called on the GL thread — switch to main thread for Camera2
         runOnUiThread(() -> openCameraWithSurface(surfaceTexture));
     }
 
@@ -170,31 +179,42 @@ public class ArMarkerActivity extends AppCompatActivity
     private void openCameraWithSurface(SurfaceTexture surfaceTexture) {
         cachedSurfaceTexture = surfaceTexture;
 
+        focalLengthPx = estimateFocalLengthPx();
+
+        poseMemoryStore.setCameraIntrinsics(
+                focalLengthPx,
+                ArCamera2Manager.PREVIEW_WIDTH  / 2.0,
+                ArCamera2Manager.PREVIEW_HEIGHT / 2.0);
+
         camera2Manager = new ArCamera2Manager(this, frameBuffer);
         camera2Manager.open(surfaceTexture);
 
-        // Build PoseEstimator with focal length derived from Camera2 intrinsics
-        double focalLengthPx = estimateFocalLengthPx();
         PoseEstimator poseEstimator = new PoseEstimator(
                 focalLengthPx,
-                ArCamera2Manager.PREVIEW_WIDTH  / 2.0,   // cx
-                ArCamera2Manager.PREVIEW_HEIGHT / 2.0);  // cy
+                ArCamera2Manager.PREVIEW_WIDTH  / 2.0,
+                ArCamera2Manager.PREVIEW_HEIGHT / 2.0);
 
         markerDetector = new MarkerDetector(frameBuffer, poseEstimator, this::onMarkersDetected);
         markerDetector.start();
     }
 
     private void closeCamera() {
-        if (markerDetector != null) { markerDetector.stop();  markerDetector  = null; }
-        if (camera2Manager != null) { camera2Manager.close(); camera2Manager  = null; }
+        if (markerDetector  != null) { markerDetector.stop();  markerDetector  = null; }
+        if (camera2Manager  != null) { camera2Manager.close(); camera2Manager  = null; }
     }
 
-    // ---- Detection callback ----
+    // ---- Detection callback (called from vision thread) ----
 
     private void onMarkersDetected(List<MarkerDetectionResult> results) {
-        // TODO (Phase 4): forward to AnnotationManager → PoseMemoryStore
+        // Switch to main thread — PoseMemoryStore and View updates must be on main thread
         runOnUiThread(() -> {
-            String msg = results.size() + " marker" + (results.size() == 1 ? "" : "s") + " detected";
+            poseMemoryStore.updateDetections(results, rotationTracker.getSnapshot());
+            refreshOverlay();
+            scheduleOverlayRefresh(); // keep refreshing for fade animation
+
+            // Update status label
+            int n = results.size();
+            String msg = n + " marker" + (n == 1 ? "" : "s") + " detected";
             detectionStatusTv.setText(msg);
             detectionStatusTv.setTextColor(
                     ContextCompat.getColor(this, android.R.color.holo_green_light));
@@ -202,21 +222,44 @@ public class ArMarkerActivity extends AppCompatActivity
         });
     }
 
-    // ---- Camera intrinsics helper ----
+    // ---- Overlay refresh ----
+
+    /** Rebuild the overlay render list from current pose memory and redraw. */
+    private void refreshOverlay() {
+        if (!isResumed || glSurfaceView == null) return;
+
+        int w = glSurfaceView.getWidth();
+        int h = glSurfaceView.getHeight();
+        if (w == 0 || h == 0) return;
+
+        List<AnnotationRenderItem> items =
+                poseMemoryStore.buildRenderList(rotationTracker.getSnapshot(), w, h);
+        annotationOverlay.setRenderItems(items);
+
+        // Reset status when all annotations have faded
+        if (!poseMemoryStore.hasActiveAnnotations()) {
+            detectionStatusTv.setText("Searching…");
+            detectionStatusTv.setTextColor(
+                    ContextCompat.getColor(this, android.R.color.holo_orange_light));
+        }
+    }
 
     /**
-     * Estimates focal length in pixels from Camera2 lens characteristics.
-     *
-     * Formula: fx = (focalLengthMm / sensorWidthMm) * imageWidthPx
-     *
-     * Falls back to a reasonable default (80° horizontal FoV approximation) if
-     * characteristics are unavailable.
+     * Keep the overlay refreshing at ~30 fps while annotations are present
+     * so fade-out animates smoothly even between detection callbacks.
      */
+    private void scheduleOverlayRefresh() {
+        mainHandler.removeCallbacks(overlayRefreshTask);
+        if (poseMemoryStore.hasActiveAnnotations() && isResumed) {
+            mainHandler.postDelayed(overlayRefreshTask, OVERLAY_REFRESH_MS);
+        }
+    }
+
+    // ---- Camera intrinsics ----
+
     private double estimateFocalLengthPx() {
         try {
-            CameraManager manager =
-                    (CameraManager) getSystemService(CAMERA_SERVICE);
-            // Use the first back-facing camera (same selection as ArCamera2Manager)
+            CameraManager manager = (CameraManager) getSystemService(CAMERA_SERVICE);
             for (String id : manager.getCameraIdList()) {
                 CameraCharacteristics c = manager.getCameraCharacteristics(id);
                 Integer facing = c.get(CameraCharacteristics.LENS_FACING);
@@ -226,22 +269,20 @@ public class ArMarkerActivity extends AppCompatActivity
                 SizeF   sensorSize   = c.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
 
                 if (focalLengths != null && focalLengths.length > 0 && sensorSize != null) {
-                    double focalMm     = focalLengths[0];
-                    double sensorWMm   = sensorSize.getWidth();
-                    double focalPx     = (focalMm / sensorWMm) * ArCamera2Manager.PREVIEW_WIDTH;
-                    Log.d(TAG, String.format("Focal length: %.1f mm → %.1f px", focalMm, focalPx));
-                    return focalPx;
+                    double fPx = (focalLengths[0] / sensorSize.getWidth())
+                               * ArCamera2Manager.PREVIEW_WIDTH;
+                    Log.d(TAG, String.format("Focal length: %.1f mm → %.1f px",
+                            focalLengths[0], fPx));
+                    return fPx;
                 }
             }
         } catch (Exception e) {
-            Log.w(TAG, "Could not read camera characteristics, using default focal length", e);
+            Log.w(TAG, "Could not read camera characteristics", e);
         }
-
-        // Fallback: assumes ~80° horizontal FoV
-        // fx = (width / 2) / tan(FoV/2)  →  1280/2 / tan(40°) ≈ 762
-        double defaultFx = (ArCamera2Manager.PREVIEW_WIDTH / 2.0) / Math.tan(Math.toRadians(40));
-        Log.d(TAG, "Using default focal length: " + (int) defaultFx + " px");
-        return defaultFx;
+        // Fallback: 80° horizontal FoV approximation
+        double fallback = (ArCamera2Manager.PREVIEW_WIDTH / 2.0) / Math.tan(Math.toRadians(40));
+        Log.d(TAG, "Using fallback focal length: " + (int) fallback + " px");
+        return fallback;
     }
 
     // ---- Utilities ----

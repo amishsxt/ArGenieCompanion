@@ -118,36 +118,36 @@ public class MarkerDetector {
         }
 
         int numMarkers = idsMat.rows();
-        if (numMarkers > 0 && callback != null) {
-            List<MarkerDetectionResult> results = new ArrayList<>(numMarkers);
-            for (int i = 0; i < numMarkers; i++) {
-                int markerId = (int) idsMat.get(i, 0)[0];
+        List<MarkerDetectionResult> results = new ArrayList<>(numMarkers);
+        for (int i = 0; i < numMarkers; i++) {
+            int markerId = (int) idsMat.get(i, 0)[0];
 
-                // ArUco corners are 1×4 CV_32FC2. new MatOfPoint2f(Mat) does NOT produce
-                // a layout that solvePnP's checkVector(2, CV_32F) accepts — it returns -1,
-                // causing the assertion failure. Extract raw floats and build explicitly.
-                Mat c = corners.get(i);
-                float[] pts = new float[8]; // 4 points × (x,y)
-                c.get(0, 0, pts);
-                MatOfPoint2f cornerMat = new MatOfPoint2f(
-                        new org.opencv.core.Point(pts[0], pts[1]),
-                        new org.opencv.core.Point(pts[2], pts[3]),
-                        new org.opencv.core.Point(pts[4], pts[5]),
-                        new org.opencv.core.Point(pts[6], pts[7]));
+            // ArUco corners are 1×4 CV_32FC2. new MatOfPoint2f(Mat) does NOT produce
+            // a layout that solvePnP's checkVector(2, CV_32F) accepts — it returns -1,
+            // causing the assertion failure. Extract raw floats and build explicitly.
+            Mat c = corners.get(i);
+            float[] pts = new float[8]; // 4 points × (x,y)
+            c.get(0, 0, pts);
+            MatOfPoint2f cornerMat = new MatOfPoint2f(
+                    new org.opencv.core.Point(pts[0], pts[1]),
+                    new org.opencv.core.Point(pts[2], pts[3]),
+                    new org.opencv.core.Point(pts[4], pts[5]),
+                    new org.opencv.core.Point(pts[6], pts[7]));
 
-                MarkerDetectionResult r = null;
-                try {
-                    r = poseEstimator.estimatePose(markerId, cornerMat);
-                } catch (Exception e) {
-                    Log.e(TAG, "solvePnP failed for marker " + markerId, e);
-                } finally {
-                    cornerMat.release();
-                }
-                if (r != null) results.add(r);
+            MarkerDetectionResult r = null;
+            try {
+                r = poseEstimator.estimatePose(markerId, cornerMat);
+            } catch (Exception e) {
+                Log.e(TAG, "solvePnP failed for marker " + markerId, e);
+            } finally {
+                cornerMat.release();
             }
-            if (!results.isEmpty()) {
-                callback.onMarkersDetected(results);
-            }
+            if (r != null) results.add(r);
+        }
+        // Always fire callback — even with empty list so PoseMemoryStore can remove
+        // annotations for markers that are no longer in the scene.
+        if (callback != null) {
+            callback.onMarkersDetected(results);
         }
 
         // Schedule next frame immediately

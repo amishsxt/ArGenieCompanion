@@ -55,11 +55,24 @@
 
     </LinearLayout>
 
-    <!-- Camera + GL rendering surface fills remaining space -->
-    <android.opengl.GLSurfaceView
-        android:id="@+id/gl_surface_view"
+    <!-- Camera + annotation layers stacked in a FrameLayout -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1">
+
+        <!-- GL layer: camera preview background -->
+        <android.opengl.GLSurfaceView
+            android:id="@+id/gl_surface_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Canvas layer: annotation overlays drawn on top -->
+        <com.example.argeniecompanion.ui.AnnotationOverlayView
+            android:id="@+id/annotation_overlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </FrameLayout>
 
 </LinearLayout>
