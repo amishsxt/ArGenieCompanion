@@ -82,6 +82,18 @@
                 android:focusable="true"
                 android:focusableInTouchMode="true"
                 android:background="@drawable/focus_back_selector" />
+
+            <ImageView
+                android:id="@+id/ar_iv"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:padding="6dp"
+                android:src="@drawable/view_in_ar_24px"
+                app:tint="?colorOnSurface"
+                android:contentDescription="Ar"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:background="@drawable/focus_back_selector" />
         </LinearLayout>
 
         <TextView

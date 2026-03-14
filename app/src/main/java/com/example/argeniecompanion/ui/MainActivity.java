@@ -97,6 +97,7 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
     private Button cameraBtn;
     private ImageView micIv, cameraIv;
     private LinearLayout deviceStatusLly;
+    private ImageView arIv;
 
     private final StringBuilder messageLog = new StringBuilder();
     private static final long FADE_DURATION_MS = 300;
@@ -322,6 +323,9 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
         micIv = findViewById(R.id.mic_iv);
         cameraIv = findViewById(R.id.camera_iv);
         deviceStatusLly = findViewById(R.id.device_status_lly);
+        arIv = findViewById(R.id.ar_iv);
+
+        arIv.setOnClickListener(view -> openArScreen());
 
         backBtn.setOnClickListener(view -> onBackPressed());
 
@@ -1051,5 +1055,9 @@ public class MainActivity extends AppCompatActivity implements MqttWebRTC.Messag
         // Stop the service so it doesn't keep running after the activity is destroyed
         Intent serviceIntent = new Intent(this, BleGattServerService.class);
         stopService(serviceIntent);
+    }
+
+    private void openArScreen(){
+
     }
 }
